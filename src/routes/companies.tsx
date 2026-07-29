@@ -1,0 +1,399 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { getCurrentUser, type AuthUser } from "~/auth/functions";
+import {
+  searchCompanies,
+  followCompany,
+  unfollowCompany,
+  getWatchlist,
+} from "~/services/companies";
+import type { CompanyEntry } from "~/data/companies";
+
+export const Route = createFileRoute("/companies")({
+  loader: async () => {
+    const [userResult, watchlistResult, searchResult] = await Promise.all([
+      getCurrentUser(),
+      getWatchlist(),
+      searchCompanies({ data: { query: "" } }),
+    ]);
+    return {
+      user: userResult.user,
+      watchlist: watchlistResult.companies,
+      initialSearch: searchResult,
+    };
+  },
+  component: CompaniesPage,
+});
+
+// ── Skeleton ─────────────────────────────────────────────────────────────────
+
+function Skeleton() {
+  return (
+    <div className="animate-pulse space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="flex items-center gap-4 rounded-xl border border-gray-200 p-4 dark:border-gray-800"
+        >
+          <div className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-gray-700" />
+          <div className="flex-1">
+            <div className="mb-1 h-5 w-40 rounded bg-gray-200 dark:bg-gray-700" />
+            <div className="h-4 w-20 rounded bg-gray-200 dark:bg-gray-700" />
+          </div>
+          <div className="h-8 w-24 rounded-lg bg-gray-200 dark:bg-gray-700" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Company card ─────────────────────────────────────────────────────────────
+
+function CompanyCard({
+  company,
+  isFollowed,
+  onToggle,
+}: {
+  company: CompanyEntry;
+  isFollowed: boolean;
+  onToggle: (slug: string, follow: boolean) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  const handleToggle = useCallback(async () => {
+    setLoading(true);
+    try {
+      await onToggle(company.slug, !isFollowed);
+    } finally {
+      setLoading(false);
+    }
+  }, [company.slug, isFollowed, onToggle]);
+
+  return (
+    <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+      {/* Avatar placeholder */}
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-sm font-bold text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+        {company.name.charAt(0).toUpperCase()}
+      </div>
+
+      {/* Info */}
+      <div className="min-w-0 flex-1">
+        <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+          {company.name}
+        </h4>
+        <div className="flex items-center gap-2">
+          {company.ats !== "none" ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-950 dark:text-green-400">
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              ATS Available
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+              Manual
+            </span>
+          )}
+          <span className="text-xs text-gray-400 dark:text-gray-500">
+            {company.ats === "greenhouse"
+              ? "Greenhouse"
+              : company.ats === "lever"
+                ? "Lever"
+                : ""}
+          </span>
+        </div>
+      </div>
+
+      {/* Follow toggle */}
+      <button
+        type="button"
+        disabled={loading}
+        onClick={handleToggle}
+        className={`flex-shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${
+          isFollowed
+            ? "bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-red-950 dark:hover:text-red-400"
+            : "bg-indigo-600 text-white hover:bg-indigo-700"
+        }`}
+      >
+        {loading ? "..." : isFollowed ? "Unfollow" : "Follow"}
+      </button>
+    </div>
+  );
+}
+
+// ── Main page ───────────────────────────────────────────────────────────────
+
+function CompaniesPage() {
+  const { user, watchlist: initialWatchlist } = Route.useLoaderData();
+
+  const [searchText, setSearchText] = useState("");
+  const [results, setResults] = useState<CompanyEntry[]>([]);
+  const [followed, setFollowed] = useState<string[]>(
+    initialWatchlist.map((c) => c.slug),
+  );
+  const [watchlist, setWatchlist] = useState<CompanyEntry[]>(initialWatchlist);
+  const [loading, setLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Debounced search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (!searchText.trim()) {
+      setResults([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await searchCompanies({ data: { query: searchText } });
+        setResults(res.companies);
+        // Update followed state from server
+        setFollowed(res.followed);
+        setShowDropdown(res.companies.length > 0);
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchText]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // Toggle follow/unfollow
+  const handleToggle = useCallback(
+    async (slug: string, shouldFollow: boolean) => {
+      if (shouldFollow) {
+        const result = await followCompany({ data: { companySlug: slug } });
+        if (result.success) {
+          setFollowed((prev) => [...prev, slug]);
+          // Refresh watchlist
+          const wl = await getWatchlist();
+          setWatchlist(wl.companies);
+        }
+      } else {
+        const result = await unfollowCompany({ data: { companySlug: slug } });
+        if (result.success) {
+          setFollowed((prev) => prev.filter((s) => s !== slug));
+          const wl = await getWatchlist();
+          setWatchlist(wl.companies);
+        }
+      }
+    },
+    [],
+  );
+
+  const handleSelect = useCallback(
+    async (company: CompanyEntry) => {
+      const isFollowed = followed.includes(company.slug);
+      let result: { success: boolean; error?: string };
+      if (isFollowed) {
+        result = await unfollowCompany({ data: { companySlug: company.slug } });
+      } else {
+        result = await followCompany({ data: { companySlug: company.slug } });
+      }
+      if (!result.success) {
+        // Server rejected the action — silently skip the optimistic update
+        // and refresh from server to get the authoritative state.
+        const wl = await getWatchlist();
+        setWatchlist(wl.companies);
+        const res = await searchCompanies({ data: { query: searchText } });
+        setResults(res.companies);
+        setFollowed(res.followed);
+        return;
+      }
+      if (isFollowed) {
+        setFollowed((prev) => prev.filter((s) => s !== company.slug));
+      } else {
+        setFollowed((prev) => [...prev, company.slug]);
+      }
+      const wl = await getWatchlist();
+      setWatchlist(wl.companies);
+      // Update results
+      const res = await searchCompanies({ data: { query: searchText } });
+      setResults(res.companies);
+      setFollowed(res.followed);
+    },
+    [followed, searchText],
+  );
+
+  return (
+    <main className="min-h-dvh bg-gray-50 dark:bg-gray-950">
+      <div className="mx-auto max-w-3xl px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Company Watchlist
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Follow companies to see their latest job openings pulled from free
+            ATS feeds.
+          </p>
+        </div>
+
+        {/* Search */}
+        <div ref={containerRef} className="relative mb-8">
+          <div className="relative">
+            <svg
+              className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search for companies to follow…"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onFocus={() => {
+                if (results.length > 0) setShowDropdown(true);
+              }}
+              className="w-full rounded-xl border border-gray-300 bg-white py-3 pl-10 pr-4 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500"
+            />
+            {loading && (
+              <svg
+                className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+            )}
+          </div>
+
+          {/* Dropdown results */}
+          {showDropdown && searchText.trim() && (
+            <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+              {results.length === 0 && !loading ? (
+                <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                  No companies found.
+                </div>
+              ) : (
+                <div className="max-h-96 overflow-y-auto py-1">
+                  {results.map((company) => {
+                    const isFollowed = followed.includes(company.slug);
+                    return (
+                      <button
+                        key={company.slug}
+                        type="button"
+                        onClick={() => handleSelect(company)}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-xs font-bold text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+                          {company.name.charAt(0)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {company.name}
+                          </div>
+                          <div className="text-xs text-gray-400 dark:text-gray-500">
+                            {company.ats !== "none" ? "ATS Available" : "Manual"}
+                          </div>
+                        </div>
+                        <span
+                          className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            isFollowed
+                              ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400"
+                              : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400"
+                          }`}
+                        >
+                          {isFollowed ? "Following" : "Follow"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* My Watchlist section */}
+        <section>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+            My Watchlist
+            {watchlist.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-gray-400">
+                ({watchlist.length})
+              </span>
+            )}
+          </h2>
+
+          {watchlist.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 py-16 text-center dark:border-gray-700">
+              <svg
+                className="mb-4 h-12 w-12 text-gray-300 dark:text-gray-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
+              </svg>
+              <h3 className="mb-2 font-semibold text-gray-700 dark:text-gray-300">
+                No companies followed
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Search above to find companies and add them to your watchlist.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {watchlist.map((company) => (
+                <CompanyCard
+                  key={company.slug}
+                  company={company}
+                  isFollowed={true}
+                  onToggle={handleToggle}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
+  );
+}
