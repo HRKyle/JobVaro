@@ -146,26 +146,35 @@ function JobCard({
   }, [job, user, onSave, onUnsave]);
 
   return (
-    <div className="group rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
-      {/* Title */}
-      <h3 className="mb-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
-        {job.url ? (
-          <a
-            href={job.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-indigo-600 hover:underline dark:text-indigo-400"
-          >
-            {job.title}
-          </a>
-        ) : (
-          job.title
-        )}
-      </h3>
+    <div className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
+      {/* Company logo placeholder + title */}
+      <div className="mb-3 flex items-start gap-3">
+        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-100 to-violet-100 text-base font-bold text-indigo-700 ring-1 ring-indigo-100 dark:from-indigo-950 dark:to-violet-950 dark:text-indigo-300 dark:ring-indigo-900">
+          {job.company.charAt(0).toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            {job.url ? (
+              <a
+                href={job.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-indigo-600 dark:hover:text-indigo-400"
+              >
+                {job.title}
+              </a>
+            ) : (
+              job.title
+            )}
+          </h3>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {job.company}
+          </p>
+        </div>
+      </div>
 
       {/* Company & Location */}
       <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
-        <span className="font-medium">{job.company}</span>
         {job.location && (
           <span className="inline-flex items-center gap-1">
             {isRemote ? (
@@ -202,7 +211,10 @@ function JobCard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {sourceLabel && (
-            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400">
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
               {sourceLabel}
             </span>
           )}
@@ -235,7 +247,7 @@ function JobCard({
           {/* Track application button */}
           <a
             href={`/track?title=${encodeURIComponent(job.title)}&company=${encodeURIComponent(job.company)}`}
-            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700"
+            className="rounded-lg bg-gradient-to-r from-indigo-600 to-violet-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-indigo-500/25 transition hover:shadow-md hover:brightness-110"
           >
             Track
           </a>
@@ -400,12 +412,12 @@ function SearchPage() {
   return (
     <div className="min-h-dvh bg-gray-50 dark:bg-gray-950">
       {/* Search header */}
-      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-4 dark:border-gray-800 dark:bg-gray-900">
+      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/90 px-4 py-4 backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/90">
         <div className="mx-auto max-w-4xl space-y-4">
           {/* Search bar */}
           <div className="relative">
             <svg
-              className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
+              className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -422,20 +434,20 @@ function SearchPage() {
               placeholder="Search jobs by title, company, or keyword…"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 py-3 pl-10 pr-4 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+              className="w-full rounded-2xl border border-gray-300 bg-white py-3.5 pl-11 pr-4 text-base shadow-sm transition placeholder:text-gray-400 focus:border-indigo-500 focus:shadow-lg focus:shadow-indigo-500/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:shadow-indigo-500/5"
             />
           </div>
 
           {/* Filters row */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Filter tabs */}
-            <div className="flex rounded-lg border border-gray-300 p-0.5 dark:border-gray-700">
+            <div className="flex rounded-xl border border-gray-300 bg-white p-1 shadow-sm dark:border-gray-700 dark:bg-gray-800">
               <button
                 type="button"
                 onClick={() => handleFilterChange("all")}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   filter === "all"
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-sm"
                     : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 }`}
               >
@@ -444,9 +456,9 @@ function SearchPage() {
               <button
                 type="button"
                 onClick={() => handleFilterChange("watchlist")}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   filter === "watchlist"
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-sm"
                     : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 }`}
               >
@@ -490,7 +502,10 @@ function SearchPage() {
             </select>
 
             {/* Result count */}
-            <span className="ml-auto text-sm text-gray-500 dark:text-gray-400">
+            <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400">
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               {results.total} job{results.total !== 1 ? "s" : ""}
             </span>
           </div>

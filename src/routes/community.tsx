@@ -5,14 +5,14 @@ import {
   useCallback,
   type FormEvent,
 } from "react";
-import { getCurrentUser, type AuthUser } from "~/auth/functions";
+import { getCurrentUser } from "~/auth/functions";
 import {
   getCommunityJobs,
   shareJob,
   deleteCommunityJob,
   type CommunityJob,
-  type CommunityJobsResponse,
 } from "~/services/community";
+import { toast } from "~/components/toast";
 
 export const Route = createFileRoute("/community")({
   loader: async () => {
@@ -129,11 +129,18 @@ function ShareForm({
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/40" onClick={onCancel} />
       {/* Modal */}
-      <div className="relative z-10 mx-4 w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-800 dark:bg-gray-900">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Share a Job
-          </h2>
+      <div className="relative z-10 mx-4 w-full max-w-xl rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+        <div className="mb-5 flex items-center justify-between border-b border-gray-100 px-6 pb-4 pt-6 dark:border-gray-800">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-500/25">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 0V16.5a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+              </svg>
+            </span>
+            <h2 className="text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">
+              Share a Job
+            </h2>
+          </div>
           <button
             type="button"
             onClick={onCancel}
@@ -161,7 +168,7 @@ function ShareForm({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-6 pb-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
               <label
@@ -281,7 +288,7 @@ function ShareForm({
             <button
               type="submit"
               disabled={loading}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+              className="rounded-lg bg-gradient-to-r from-indigo-600 to-violet-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110 disabled:opacity-50"
             >
               {loading ? "Sharing…" : "Share Job"}
             </button>
@@ -338,10 +345,10 @@ function JobCard({
   );
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 transition hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+    <div className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="text-base">{titleContent}</h3>
+          <h3 className="text-base font-bold tracking-tight">{titleContent}</h3>
           <p className="mt-0.5 text-sm font-medium text-gray-700 dark:text-gray-300">
             {job.company}
           </p>
@@ -444,7 +451,10 @@ function JobCard({
         )}
         <span>{relativeTime(job.posted_at)}</span>
         {job.user_name && (
-          <span className="text-gray-400 dark:text-gray-500">
+          <span className="inline-flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 text-[9px] font-bold text-indigo-600 dark:from-indigo-900 dark:to-violet-900 dark:text-indigo-300">
+              {job.user_name.charAt(0).toUpperCase()}
+            </span>
             shared by {job.user_name}
           </span>
         )}
@@ -511,6 +521,7 @@ function CommunityPage() {
   const handleShared = useCallback(async () => {
     setShowShareForm(false);
     setPage(1);
+    toast("Job shared with the community");
     const result = await getCommunityJobs({
       data: { search: search || undefined, page: 1 },
     });
@@ -520,6 +531,7 @@ function CommunityPage() {
   }, [search]);
 
   const handleDeleted = useCallback(async () => {
+    toast("Job removed", "info");
     const result = await getCommunityJobs({
       data: { search: search || undefined, page },
     });
@@ -546,11 +558,11 @@ function CommunityPage() {
   const isLoading = loading && jobs.length === 0;
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
+    <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
             Community Jobs
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -561,7 +573,7 @@ function CommunityPage() {
           <button
             type="button"
             onClick={() => setShowShareForm(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110 active:scale-95"
           >
             <svg
               className="h-4 w-4"
@@ -581,7 +593,7 @@ function CommunityPage() {
         ) : (
           <a
             href="/"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110"
           >
             Sign in to Share
           </a>

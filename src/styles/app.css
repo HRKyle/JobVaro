@@ -5,4 +5,123 @@
   body {
     @apply bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
   }
+
+  ::selection {
+    @apply bg-indigo-600/20 text-indigo-900 dark:bg-indigo-400/30 dark:text-indigo-100;
+  }
+}
+
+@layer utilities {
+  /* ── Page transition: fade + slight rise on route change ── */
+  .animate-page-fade {
+    animation: page-fade 0.35s ease-out both;
+  }
+
+  /* ── Toast enter/exit ── */
+  .animate-toast-in {
+    animation: toast-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* ── Slide-in panel (mobile menu) ── */
+  .animate-slide-in-right {
+    animation: slide-in-right 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* ── Backdrop fade ── */
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out both;
+  }
+
+  /* ── Slow float for hero blobs ── */
+  .animate-float-slow {
+    animation: float-slow 9s ease-in-out infinite;
+  }
+  .animate-float-slower {
+    animation: float-slower 13s ease-in-out infinite;
+  }
+
+  /* ── Subtle grid background for hero ── */
+  .bg-grid-slate {
+    background-image:
+      linear-gradient(to right, rgb(99 102 241 / 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(99 102 241 / 0.07) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  .dark .bg-grid-slate {
+    background-image:
+      linear-gradient(to right, rgb(129 140 248 / 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(129 140 248 / 0.06) 1px, transparent 1px);
+  }
+
+  /* ── Thin scrollbars for dropdowns / panels ── */
+  .nice-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .nice-scroll::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-gray-300 dark:bg-gray-700;
+  }
+  .nice-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@keyframes page-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(20px, -24px) scale(1.06);
+  }
+}
+
+@keyframes float-slower {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-24px, 20px) scale(1.05);
+  }
 }

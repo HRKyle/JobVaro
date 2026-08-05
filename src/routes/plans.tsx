@@ -150,14 +150,17 @@ function PlanCard({
 }) {
   return (
     <div
-      className={`relative flex flex-col rounded-2xl border p-6 transition ${
+      className={`relative flex flex-col rounded-2xl p-6 transition-all duration-300 ${
         highlight
-          ? "border-indigo-400 bg-indigo-50 shadow-lg ring-2 ring-indigo-200 dark:border-indigo-600 dark:bg-indigo-950/30 dark:ring-indigo-800"
-          : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+          ? "border-2 border-transparent bg-white shadow-xl shadow-indigo-500/15 ring-1 ring-indigo-300 dark:bg-gray-900 dark:ring-indigo-700 [background:linear-gradient(white,white)_padding-box,linear-gradient(135deg,#4F46E5,#8B5CF6)_border-box] dark:[background:linear-gradient(#111827,#111827)_padding-box,linear-gradient(135deg,#4F46E5,#8B5CF6)_border-box]"
+          : "border border-gray-200 bg-white shadow-sm hover:shadow-md dark:border-gray-700 dark:bg-gray-900"
       }`}
     >
       {highlight && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-indigo-600 px-3 py-0.5 text-xs font-semibold text-white">
+        <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-400 px-3 py-0.5 text-xs font-bold text-gray-900 shadow-md shadow-amber-500/30">
+          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5L5.7 21l2.3-7.2-6-4.6h7.6z" />
+          </svg>
           Recommended
         </span>
       )}
@@ -236,7 +239,7 @@ function PlanCard({
               ctaDisabled
                 ? "cursor-not-allowed bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500"
                 : highlight
-                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                  ? "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-500/25 hover:shadow-lg hover:brightness-110"
                   : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
             }`}
           >
@@ -312,7 +315,7 @@ function PlansPage() {
   ].filter((name) => featureMap.has(name));
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       {/* Header */}
       <div className="mb-10 text-center">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl">
@@ -326,7 +329,7 @@ function PlansPage() {
 
       {/* Pro status banner */}
       {isPro && (
-        <div className="mb-8 rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-center dark:border-indigo-800 dark:bg-indigo-950/50">
+        <div className="mb-8 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-center dark:border-indigo-800 dark:bg-indigo-950/50">
           <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
             🎉 You're on the Pro plan — enjoy unlimited tracking and all premium
             features.

@@ -27,6 +27,7 @@ import { StatusBadge, statusLabel } from "~/components/StatusBadge";
 import { shareJob } from "~/services/community";
 import { BookmarkletInstructionsCompact } from "~/components/BookmarkletInstructions";
 import { AuthForms } from "~/components/AuthForms";
+import { toast } from "~/components/toast";
 
 const getBusinessName = createServerFn({ method: "GET" }).handler(async () => {
   try {
@@ -54,6 +55,19 @@ export const Route = createFileRoute("/track")({
 // ── Filter types ─────────────────────────────────────────────────────────────
 
 type StatusFilter = "all" | "applied" | "interview" | "offer" | "rejected";
+
+/** Accent color for the left bar on application cards */
+const STATUS_ACCENT: Record<string, string> = {
+  saved: "bg-gray-400 dark:bg-gray-500",
+  applied: "bg-blue-500",
+  phone_screen: "bg-violet-500",
+  interview: "bg-purple-500",
+  technical: "bg-indigo-500",
+  offer: "bg-green-500",
+  accepted: "bg-emerald-500",
+  rejected: "bg-red-500",
+  withdrawn: "bg-orange-500",
+};
 
 const FILTER_TABS: { key: StatusFilter; label: string }[] = [
   { key: "all", label: "All" },
@@ -262,11 +276,18 @@ function AppForm({
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/40" onClick={onCancel} />
       {/* Modal */}
-      <div className="relative z-10 mx-4 w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-800 dark:bg-gray-900">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            {isEdit ? "Edit Application" : "Add Application"}
-          </h2>
+      <div className="relative z-10 mx-4 w-full max-w-xl rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+        <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-4 dark:border-gray-800">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-500/25">
+              <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </span>
+            <h2 className="text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">
+              {isEdit ? "Edit Application" : "Add Application"}
+            </h2>
+          </div>
           <button
             type="button"
             onClick={onCancel}
@@ -294,8 +315,16 @@ function AppForm({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-6 pb-6">
+          {/* Section: Position */}
+          <div>
+            <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Position
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
               <label
                 htmlFor="app-job-title"
@@ -333,7 +362,17 @@ function AppForm({
               />
             </div>
           </div>
+          </div>
 
+          {/* Section: Details */}
+          <div>
+            <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Details
+            </h3>
+            <div className="space-y-4">
           <div className="flex flex-col gap-1">
             <label
               htmlFor="app-url"
@@ -387,7 +426,18 @@ function AppForm({
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
           </div>
+            </div>
+          </div>
 
+          {/* Section: Notes */}
+          <div>
+            <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Notes
+            </h3>
+            <div className="space-y-4">
           <div className="flex flex-col gap-1">
             <label
               htmlFor="app-notes"
@@ -403,6 +453,8 @@ function AppForm({
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               placeholder="Any notes about this application..."
             />
+          </div>
+            </div>
           </div>
 
           {!isEdit && (
@@ -430,7 +482,7 @@ function AppForm({
             <button
               type="submit"
               disabled={loading}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+              className="rounded-lg bg-gradient-to-r from-indigo-600 to-violet-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110 disabled:opacity-50"
             >
               {loading ? "Saving…" : isEdit ? "Save Changes" : "Add Application"}
             </button>
@@ -495,29 +547,32 @@ function QuickAdd({
   );
 
   return (
-    <div className="rounded-2xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 p-6 dark:border-indigo-800 dark:bg-indigo-950/30">
-      <div className="flex items-center gap-2 mb-3">
-        <svg
-          className="h-5 w-5 text-indigo-600 dark:text-indigo-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 10V3L4 14h7v7l9-11h-7z"
-          />
-        </svg>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-          Quick Add
-        </h2>
+    <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-indigo-300 bg-gradient-to-br from-indigo-50/80 to-violet-50/40 p-6 dark:border-indigo-800 dark:from-indigo-950/40 dark:to-violet-950/20">
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-500/25">
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 10V3L4 14h7v7l9-11h-7z"
+            />
+          </svg>
+        </span>
+        <div>
+          <h2 className="text-base font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            Quick Add
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Paste a job listing URL and we&apos;ll auto-fill the details for you.
+          </p>
+        </div>
       </div>
-
-      <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Paste a job listing URL and we'll auto-fill the details for you.
-      </p>
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
@@ -562,7 +617,7 @@ function QuickAdd({
           type="button"
           onClick={handleExtract}
           disabled={extracting || !url.trim()}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50 sm:w-auto"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-500 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110 disabled:opacity-50 sm:w-auto"
         >
           {extracting ? (
             "Extracting…"
@@ -715,6 +770,7 @@ function AppCard({
     setDeleteLoading(true);
     try {
       await deleteApplication({ data: { id: app.id } });
+      toast("Application deleted", "info");
       onUpdate();
     } catch {
       setDeleteLoading(false);
@@ -730,21 +786,26 @@ function AppCard({
     : null;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white transition hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+    <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+      {/* Status accent bar on the left edge */}
+      <span
+        className={`absolute inset-y-0 left-0 w-1 ${STATUS_ACCENT[app.status] ?? "bg-gray-300 dark:bg-gray-700"}`}
+        aria-hidden
+      />
       {/* Card header — always visible */}
       <button
         type="button"
         onClick={handleToggle}
-        className="w-full p-5 text-left"
+        className="w-full p-5 pl-6 text-left"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-gray-900 truncate dark:text-gray-100">
-              {app.job_title}
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
               {app.company}
             </p>
+            <h3 className="mt-0.5 truncate text-base font-bold tracking-tight text-gray-900 dark:text-gray-100">
+              {app.job_title}
+            </h3>
           </div>
           <div className="flex flex-shrink-0 items-center gap-2">
             <StatusBadge status={app.status} />
@@ -1103,6 +1164,7 @@ function TrackPage() {
     setShowForm(false);
     setEditingApp(null);
     setFormPrefill({});
+    toast("Application saved");
     refresh();
   }, [refresh]);
 
@@ -1141,11 +1203,11 @@ function TrackPage() {
   const isLoading = loading && apps.length === 0;
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
+    <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
             Your Applications
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -1159,7 +1221,7 @@ function TrackPage() {
             setFormPrefill({});
             setShowForm(true);
           }}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110 active:scale-95"
         >
           <svg
             className="h-4 w-4"
@@ -1190,31 +1252,46 @@ function TrackPage() {
             {
               label: "Total",
               value: stats.total,
-              color: "text-gray-900 dark:text-gray-100",
+              icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
+              chip: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
             },
             {
               label: "Active",
               value: stats.active,
-              color: "text-blue-600 dark:text-blue-400",
+              icon: "M13 10V3L4 14h7v7l9-11h-7z",
+              chip: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
             },
             {
               label: "Interviews",
               value: stats.interviews,
-              color: "text-purple-600 dark:text-purple-400",
+              icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
+              chip: "bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
             },
             {
               label: "Offers",
               value: stats.offers,
-              color: "text-green-600 dark:text-green-400",
+              icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+              chip: "bg-green-100 text-green-600 dark:bg-green-950 dark:text-green-400",
             },
           ].map((s) => (
             <div
               key={s.label}
-              className="rounded-xl border border-gray-200 bg-white p-4 text-center dark:border-gray-800 dark:bg-gray-900"
+              className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
             >
-              <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-              <div className="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                {s.label}
+              <span
+                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${s.chip}`}
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d={s.icon} />
+                </svg>
+              </span>
+              <div className="min-w-0">
+                <div className="text-2xl font-bold leading-none text-gray-900 dark:text-gray-100">
+                  {s.value}
+                </div>
+                <div className="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                  {s.label}
+                </div>
               </div>
             </div>
           ))}
@@ -1234,18 +1311,18 @@ function TrackPage() {
                 key={tab.key}
                 type="button"
                 onClick={() => setFilter(tab.key)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
                   filter === tab.key
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-sm shadow-indigo-500/30"
+                    : "bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-900 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700 dark:hover:bg-gray-700"
                 }`}
               >
                 {tab.label}
                 <span
-                  className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] ${
+                  className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
                     filter === tab.key
-                      ? "bg-white/20 text-white"
-                      : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                      ? "bg-white/25 text-white"
+                      : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
                   }`}
                 >
                   {count}
@@ -1264,45 +1341,44 @@ function TrackPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <svg
-            className="mb-4 h-16 w-16 text-gray-300 dark:text-gray-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-          {apps.length === 0 ? (
-            <>
-              <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                No applications yet
-              </h3>
-              <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-                Paste a job URL above or search for jobs to start tracking!
-              </p>
-              <a
-                href="/search"
-                className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
-              >
-                Go to Search
-              </a>
-            </>
-          ) : (
-            <>
-              <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                No matching applications
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Try a different filter.
-              </p>
-            </>
-          )}
+        <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-gray-300 bg-white/60 py-20 text-center dark:border-gray-700 dark:bg-gray-900/40">
+          {/* decorative dots */}
+          <div className="pointer-events-none absolute -left-6 top-8 h-24 w-24 rounded-full bg-indigo-100/70 blur-2xl dark:bg-indigo-900/30" />
+          <div className="pointer-events-none absolute -right-6 bottom-8 h-24 w-24 rounded-full bg-violet-100/70 blur-2xl dark:bg-violet-900/30" />
+          <div className="relative">
+            <div className="relative mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-500 shadow-lg shadow-indigo-500/30">
+              <span className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-500 opacity-50 blur-lg" />
+              <span className="relative text-5xl">🗂️</span>
+            </div>
+            {apps.length === 0 ? (
+              <>
+                <h3 className="mb-2 text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">
+                  No applications yet
+                </h3>
+                <p className="mx-auto mb-6 max-w-xs text-sm text-gray-500 dark:text-gray-400">
+                  Paste a job URL above or search for jobs to start tracking!
+                </p>
+                <a
+                  href="/search"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110 active:scale-95"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Go to Search
+                </a>
+              </>
+            ) : (
+              <>
+                <h3 className="mb-2 text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">
+                  No matching applications
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Try a different filter.
+                </p>
+              </>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-3">

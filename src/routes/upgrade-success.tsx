@@ -80,7 +80,7 @@ function UpgradeSuccessPage() {
       <div className="mt-10 flex flex-col gap-3 sm:flex-row">
         <a
           href="/track"
-          className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          className="rounded-lg bg-gradient-to-r from-indigo-600 to-violet-500 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110"
         >
           Go to your applications
         </a>

@@ -8,6 +8,7 @@ import {
   getWatchlist,
 } from "~/services/companies";
 import type { CompanyEntry } from "~/data/companies";
+import { toast } from "~/components/toast";
 
 export const Route = createFileRoute("/companies")({
   loader: async () => {
@@ -109,13 +110,39 @@ function CompanyCard({
         type="button"
         disabled={loading}
         onClick={handleToggle}
-        className={`flex-shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${
+        className={`relative flex-shrink-0 overflow-hidden rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-300 disabled:opacity-50 ${
           isFollowed
-            ? "bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-red-950 dark:hover:text-red-400"
-            : "bg-indigo-600 text-white hover:bg-indigo-700"
+            ? "bg-green-100 text-green-700 ring-1 ring-green-200 hover:bg-red-50 hover:text-red-600 hover:ring-red-200 dark:bg-green-950 dark:text-green-400 dark:ring-green-900 dark:hover:bg-red-950 dark:hover:text-red-400 dark:hover:ring-red-900"
+            : "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-sm shadow-indigo-500/25 hover:shadow-md hover:brightness-110"
         }`}
       >
-        {loading ? "..." : isFollowed ? "Unfollow" : "Follow"}
+        {loading ? (
+          <span className="inline-flex items-center gap-1.5">
+            <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            ...
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5">
+            {isFollowed ? (
+              <>
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Following
+              </>
+            ) : (
+              <>
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Follow
+              </>
+            )}
+          </span>
+        )}
       </button>
     </div>
   );
@@ -186,6 +213,7 @@ function CompaniesPage() {
         const result = await followCompany({ data: { companySlug: slug } });
         if (result.success) {
           setFollowed((prev) => [...prev, slug]);
+          toast("Company added to watchlist");
           // Refresh watchlist
           const wl = await getWatchlist();
           setWatchlist(wl.companies);
@@ -194,6 +222,7 @@ function CompaniesPage() {
         const result = await unfollowCompany({ data: { companySlug: slug } });
         if (result.success) {
           setFollowed((prev) => prev.filter((s) => s !== slug));
+          toast("Company removed from watchlist", "info");
           const wl = await getWatchlist();
           setWatchlist(wl.companies);
         }
@@ -238,10 +267,10 @@ function CompaniesPage() {
 
   return (
     <main className="min-h-dvh bg-gray-50 dark:bg-gray-950">
-      <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
             Company Watchlist
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -302,7 +331,10 @@ function CompaniesPage() {
 
           {/* Dropdown results */}
           {showDropdown && searchText.trim() && (
-            <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+            <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl shadow-gray-900/10 dark:border-gray-700 dark:bg-gray-900 dark:shadow-black/40">
+              <div className="border-b border-gray-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:border-gray-800 dark:text-gray-500">
+                Results
+              </div>
               {results.length === 0 && !loading ? (
                 <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                   No companies found.
@@ -381,7 +413,7 @@ function CompaniesPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
               {watchlist.map((company) => (
                 <CompanyCard
                   key={company.slug}
