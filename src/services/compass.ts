@@ -17,7 +17,7 @@ Return ONLY valid JSON (no markdown) with exactly these sections: matchScore (0-
 
 Rules: truly required missing qualifications (especially legally required licenses/certifications) must heavily reduce Qualifications Alignment. Distinguish Required from Preferred; missing preferred items should not heavily penalize. Transferable skills earn partial credit (for example Tableau + Python for a Power BI request). Do not merely keyword match; evaluate actual capability. Scores must add up: matchScore = category total, candidateFit = qualifications + experience + skills, resumeEffectiveness = resumeEvidence + atsReadiness.`;
 
-export const analyzeCompass = createServerFn({ method: "POST" }).handler(async ({ data }): Promise<{ success: true; report: CompassReport; truncated: boolean } | { success: false; error: string }> => {
+export const analyzeCompass = createServerFn({ method: "POST" }).handler(async ({ data }): Promise<{ success: true; report: CompassReport; truncated: boolean } | { success: false; error: string; upgradeRequired?: boolean }> => {
   const input = data as { resumeText?: string; jobDescription?: string; jobTitle?: string; company?: string };
   const resumeText = (input.resumeText ?? "").trim();
   const jobDescription = (input.jobDescription ?? "").trim();
@@ -27,6 +27,23 @@ export const analyzeCompass = createServerFn({ method: "POST" }).handler(async (
   const job = jobDescription.slice(0, 8000);
   if (!process.env.OPENAI_API_KEY) return { success: false, error: "Compass is not configured yet. Please try again later." };
   try {
+    // Resolve the session up front so we can enforce the free-plan usage cap.
+    const { getSession } = await import("~/auth/session");
+    const session = await getSession();
+    if (!session) return { success: false, error: "Please sign in to use Compass." };
+
+    // Free-plan cap: 3 analyses per user. Pro users are unlimited.
+    const userRows = await sql`SELECT plan FROM users WHERE id = ${session.userId} LIMIT 1`;
+    const plan = String((userRows[0] as { plan?: string } | undefined)?.plan ?? "free");
+    const isPro = plan === "pro";
+    if (!isPro) {
+      const countRows = await sql`SELECT COUNT(*)::int AS count FROM compass_analyses WHERE user_id = ${session.userId}`;
+      const count = (countRows[0] as { count: number }).count ?? 0;
+      if (count >= 3) {
+        return { success: false, error: "Free plan includes 3 Compass analyses. Upgrade to Pro for unlimited analyses.", upgradeRequired: true };
+      }
+    }
+
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
       body: JSON.stringify({ model: "gpt-4o-mini", temperature: 0.2, response_format: { type: "json_object" }, messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: `JOB TITLE: ${input.jobTitle || "(infer from posting)"}\nCOMPANY: ${input.company || "(not provided)"}\n\nJOB DESCRIPTION:\n${job}\n\nRESUME:\n${resume}` }] }),
@@ -35,11 +52,7 @@ export const analyzeCompass = createServerFn({ method: "POST" }).handler(async (
     const payload = await response.json() as { choices?: { message?: { content?: string } }[] };
     const report = JSON.parse(payload.choices?.[0]?.message?.content ?? "") as CompassReport;
     if (typeof report.matchScore !== "number" || !report.categoryScores) throw new Error("Invalid analysis returned");
-    const { getSession } = await import("~/auth/session");
-    const session = await getSession();
-    if (session) {
-      await sql`INSERT INTO compass_analyses (user_id, job_title, company, job_description, resume_text, match_score, report_json) VALUES (${session.userId}, ${input.jobTitle?.trim() || "Untitled role"}, ${input.company?.trim() || null}, ${jobDescription}, ${resumeText}, ${report.matchScore}, ${JSON.stringify(report)})`;
-    }
+    await sql`INSERT INTO compass_analyses (user_id, job_title, company, job_description, resume_text, match_score, report_json) VALUES (${session.userId}, ${input.jobTitle?.trim() || "Untitled role"}, ${input.company?.trim() || null}, ${jobDescription}, ${resumeText}, ${report.matchScore}, ${JSON.stringify(report)})`;
     return { success: true, report, truncated };
   } catch (error) {
     console.error("Compass analysis error:", error);

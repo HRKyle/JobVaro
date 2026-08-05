@@ -108,6 +108,10 @@ const FEATURE_ICONS: Record<number, { bg: string; ring: string }> = {
     bg: "bg-green-50 group-hover:bg-green-100 dark:bg-green-950 dark:group-hover:bg-green-900",
     ring: "ring-green-100 dark:ring-green-900",
   },
+  4: {
+    bg: "bg-teal-50 group-hover:bg-teal-100 dark:bg-teal-950 dark:group-hover:bg-teal-900",
+    ring: "ring-teal-100 dark:ring-teal-900",
+  },
 };
 
 function FeatureCard({
@@ -121,7 +125,7 @@ function FeatureCard({
   description: string;
   index: number;
 }) {
-  const icon = FEATURE_ICONS[index % 4];
+  const icon = FEATURE_ICONS[index % 5];
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:shadow-indigo-500/10 dark:border-gray-800 dark:bg-gray-900">
       <div
@@ -170,6 +174,52 @@ function Step({
       <p className="max-w-xs text-sm leading-relaxed text-gray-600 dark:text-gray-400">
         {description}
       </p>
+    </div>
+  );
+}
+
+// ── Compass score ring (static mockup) ───────────────────────────────────────
+function ScoreRing({ score }: { score: number }) {
+  const color = "#16a34a";
+  const circumference = 2 * Math.PI * 56;
+  return (
+    <div className="relative h-36 w-36 shrink-0">
+      <div
+        className="absolute inset-2 rounded-full blur-2xl opacity-30"
+        style={{ backgroundColor: color }}
+        aria-hidden
+      />
+      <svg className="relative h-full w-full -rotate-90" viewBox="0 0 128 128">
+        <circle
+          cx="64"
+          cy="64"
+          r="56"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="10"
+          className="text-gray-200 dark:text-gray-800"
+        />
+        <circle
+          cx="64"
+          cy="64"
+          r="56"
+          fill="none"
+          stroke={color}
+          strokeWidth="10"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - score / 100)}
+          style={{ filter: `drop-shadow(0 0 6px ${color}66)` }}
+        />
+      </svg>
+      <span className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+          {score}
+        </span>
+        <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400">
+          match score
+        </span>
+      </span>
     </div>
   );
 }
@@ -323,15 +373,15 @@ function Home() {
         <FadeInSection threshold={0.1}>
           <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-gray-600 dark:text-gray-400">
             Track every application in one place. Paste a job URL and we
-            auto-fill the details. Save jobs from any site with one click.
-            Never lose an opportunity again.
+            auto-fill the details. Save jobs from any site with one click —
+            and check your real odds with AI résumé-job matching.
           </p>
         </FadeInSection>
 
         <FadeInSection>
           <div className="flex flex-col items-center gap-4 sm:flex-row">
             <a
-              href="#signup"
+              href="/track"
               className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:shadow-xl hover:shadow-indigo-500/40 hover:brightness-110 active:scale-95"
             >
               Get Started Free
@@ -466,6 +516,100 @@ function Home() {
                 title="Company Watchlist"
                 description="Follow the companies you care about and get notified when new positions open. Never miss an opportunity at your dream employer."
               />
+            </FadeInSection>
+            <FadeInSection threshold={0.1}>
+              <FeatureCard
+                index={4}
+                emoji="🧭"
+                title="JobVaro Compass"
+                description="AI-powered résumé-job matching — know your odds before you apply. Get a recruiter's honest take and a prioritized action plan."
+              />
+            </FadeInSection>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          COMPASS — AI RÉSUMÉ-JOB MATCHING
+          ══════════════════════════════════════════════════════════════════════ */}
+      <section className="relative overflow-hidden px-6 py-24 sm:py-32">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_left,_var(--tw-gradient-stops))] from-teal-50 via-transparent to-transparent dark:from-teal-950/30" />
+        <div className="mx-auto max-w-6xl">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            {/* Left: pitch + CTA */}
+            <FadeInSection>
+              <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 text-sm font-semibold text-teal-700 dark:border-teal-900 dark:bg-teal-950/60 dark:text-teal-300">
+                🧭 JobVaro Compass
+              </span>
+              <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-gray-100">
+                Know your odds{" "}
+                <span className="bg-gradient-to-r from-teal-600 to-indigo-500 bg-clip-text text-transparent">
+                  before you apply
+                </span>
+              </h2>
+              <p className="mb-8 text-lg leading-relaxed text-gray-600 dark:text-gray-400">
+                Paste any job description with your résumé and Compass scores
+                your fit against the role — then gives you a recruiter&apos;s
+                honest take and a prioritized action plan to close the gaps.
+                Apply to roles you can actually win.
+              </p>
+              <div className="flex flex-col items-start gap-4 sm:flex-row">
+                <a
+                  href="/compass"
+                  className="rounded-xl bg-gradient-to-r from-teal-600 to-indigo-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-teal-500/30 transition-all hover:shadow-xl hover:shadow-teal-500/40 hover:brightness-110 active:scale-95"
+                >
+                  Check your fit — free
+                </a>
+                <p className="self-center text-sm text-gray-500 dark:text-gray-400">
+                  Free plan includes 3 analyses. No card required.
+                </p>
+              </div>
+            </FadeInSection>
+
+            {/* Right: score-ring + recruiter quote mockup */}
+            <FadeInSection threshold={0.1}>
+              <div className="relative rounded-2xl border border-gray-200 bg-white p-1 shadow-xl shadow-gray-200/50 dark:border-gray-800 dark:bg-gray-900 dark:shadow-gray-950/50">
+                <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+                  <div className="h-3 w-3 rounded-full bg-red-400" />
+                  <div className="h-3 w-3 rounded-full bg-yellow-400" />
+                  <div className="h-3 w-3 rounded-full bg-green-400" />
+                  <div className="ml-4 h-4 w-40 rounded bg-gray-100 dark:bg-gray-800" />
+                  <span className="ml-auto rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-950 dark:text-teal-300">
+                    Compass report
+                  </span>
+                </div>
+                <div className="flex flex-col items-center gap-6 p-6 sm:flex-row sm:items-start">
+                  <ScoreRing score={87} />
+                  <div className="flex-1 text-center sm:text-left">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700 dark:bg-green-950 dark:text-green-300">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                      Strong Match
+                    </span>
+                    <blockquote className="mt-3 rounded-xl border-l-4 border-teal-400 bg-gray-50 p-4 text-sm leading-6 text-gray-600 dark:bg-gray-950 dark:text-gray-400">
+                      <p>
+                        &ldquo;Solid experience match — I&apos;d pass this to
+                        the hiring manager. Add metrics to your last two roles
+                        and you become a top candidate for this one.&rdquo;
+                      </p>
+                      <footer className="mt-2 text-xs font-semibold text-gray-400">
+                        Recruiter perspective · generated by Compass
+                      </footer>
+                    </blockquote>
+                    <div className="mt-3 flex flex-wrap justify-center gap-1.5 sm:justify-start">
+                      {["Add quantified impact", "Match 3 missing keywords", "Reorder skills section"].map(
+                        (item) => (
+                          <span
+                            key={item}
+                            className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                          >
+                            {item}
+                          </span>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </FadeInSection>
           </div>
         </div>
@@ -608,6 +752,7 @@ function Home() {
                 period="forever"
                 features={[
                   "Up to 20 tracked applications",
+                  "3 Compass AI analyses",
                   "Basic job search",
                   "Community job board access",
                   "URL auto-fill for jobs",
@@ -624,9 +769,7 @@ function Home() {
                 period="/month"
                 features={[
                   "Unlimited tracked applications",
-                  "Advanced search filters",
-                  "Application analytics dashboard",
-                  "Follow-up reminders & notifications",
+                  "Unlimited Compass analyses",
                   "Company watchlist",
                   "Priority support",
                 ]}

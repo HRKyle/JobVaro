@@ -49,11 +49,13 @@ function CompassWorkspace({ user: _user }: { user: AuthUser }) {
   const [truncated, setTruncated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [upgradeRequired, setUpgradeRequired] = useState(false);
 
   async function runAnalysis() {
     if (!resume.trim() || !jd.trim()) return;
     setLoading(true);
     setError("");
+    setUpgradeRequired(false);
     try {
       const result = await analyzeCompass({
         data: {
@@ -66,7 +68,10 @@ function CompassWorkspace({ user: _user }: { user: AuthUser }) {
       if (result.success) {
         setReport(result.report);
         setTruncated(result.truncated);
-      } else setError(result.error);
+      } else {
+        setError(result.error);
+        setUpgradeRequired(!!result.upgradeRequired);
+      }
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -167,10 +172,10 @@ function CompassWorkspace({ user: _user }: { user: AuthUser }) {
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                 />
               </svg>
-              Upload .txt, .pdf, or .docx
+              Upload a TXT file
               <input
                 type="file"
-                accept=".txt,.pdf,.docx"
+                accept=".txt"
                 onChange={readFile}
                 className="hidden"
               />
@@ -184,25 +189,55 @@ function CompassWorkspace({ user: _user }: { user: AuthUser }) {
           )}
 
           {error && (
-            <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+            <div
+              className={`mt-4 rounded-lg p-3 text-sm ${
+                upgradeRequired
+                  ? "border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+                  : "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"
+              }`}
+            >
               {error}
             </div>
           )}
 
-          <button
-            disabled={!jd.trim() || !resume.trim() || loading}
-            onClick={runAnalysis}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 px-4 py-3 font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading && (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-            )}
-            {loading
-              ? "Analyzing your fit..."
-              : report
-                ? "Analyze Again"
-                : "Analyze Match"}
-          </button>
+          {upgradeRequired ? (
+            <div className="mt-5 rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-violet-50 p-6 text-center dark:border-indigo-800 dark:from-indigo-950/60 dark:to-violet-950/40">
+              <div className="relative mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-500 text-2xl shadow-lg shadow-indigo-500/30">
+                <span className="relative">🧭</span>
+              </div>
+              <h3 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">
+                You&apos;ve used your 3 free analyses
+              </h3>
+              <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                Upgrade to Pro for unlimited AI résumé–job matching — know your
+                odds on every application, not just the first few.
+              </p>
+              <a
+                href="/plans"
+                className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 px-4 py-3 font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110"
+              >
+                Upgrade to Pro
+              </a>
+              <p className="mt-3 text-xs text-gray-400">
+                $12/month · cancel anytime
+              </p>
+            </div>
+          ) : (
+            <button
+              disabled={!jd.trim() || !resume.trim() || loading}
+              onClick={runAnalysis}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 px-4 py-3 font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading && (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              )}
+              {loading
+                ? "Analyzing your fit..."
+                : report
+                  ? "Analyze Again"
+                  : "Analyze Match"}
+            </button>
+          )}
         </section>
 
         {/* ── Report panel ── */}

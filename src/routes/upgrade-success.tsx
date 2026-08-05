@@ -16,9 +16,7 @@ export const Route = createFileRoute("/upgrade-success")({
 
 const proFeatureList = [
   "Unlimited tracked applications",
-  "Advanced search filters",
-  "Application analytics dashboard",
-  "Email reminders for follow-ups",
+  "Unlimited Compass analyses",
   "Priority support",
 ];
 

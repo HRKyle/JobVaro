@@ -263,10 +263,9 @@ function PlansPage() {
     { name: "Basic filters", included: true },
     { name: "Application status tracking", included: true },
     { name: "Timeline events", included: true },
+    { name: "3 Compass AI analyses", included: true },
     { name: "Unlimited tracked applications", included: false },
-    { name: "Advanced search filters", included: false },
-    { name: "Application analytics", included: false },
-    { name: "Email reminders", included: false },
+    { name: "Unlimited Compass analyses", included: false },
     { name: "Priority support", included: false },
   ];
 
@@ -276,9 +275,7 @@ function PlansPage() {
     { name: "Application status tracking", included: true },
     { name: "Timeline events", included: true },
     { name: "Unlimited tracked applications", included: true },
-    { name: "Advanced search filters", included: true },
-    { name: "Application analytics", included: true },
-    { name: "Email reminders", included: true },
+    { name: "Unlimited Compass analyses", included: true },
     { name: "Priority support", included: true },
   ];
 
@@ -304,13 +301,12 @@ function PlansPage() {
   const orderedFeatures = [
     "Basic search",
     "Basic filters",
-    "Advanced search filters",
     "Application status tracking",
     "Timeline events",
     "Up to 20 tracked applications",
     "Unlimited tracked applications",
-    "Application analytics",
-    "Email reminders",
+    "3 Compass AI analyses",
+    "Unlimited Compass analyses",
     "Priority support",
   ].filter((name) => featureMap.has(name));
 
