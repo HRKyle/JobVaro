@@ -95,6 +95,12 @@ function RootComponent() {
               Companies
             </a>
             <a
+              href="/compass"
+              className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+            >
+              🧭 Compass
+            </a>
+            <a
               href="/track"
               className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
             >
@@ -139,7 +145,7 @@ function RootComponent() {
               </div>
             ) : (
               <a
-                href="/"
+                href="/track"
                 className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-700"
               >
                 Sign in
@@ -187,6 +193,13 @@ function RootComponent() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Companies
+              </a>
+              <a
+                href="/compass"
+                className="text-sm font-medium text-gray-600 dark:text-gray-400"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                🧭 Compass
               </a>
               <a
                 href="/track"
@@ -240,7 +253,7 @@ function RootComponent() {
                 </>
               ) : (
                 <a
-                  href="/"
+                  href="/track"
                   className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white"
                   onClick={() => setMobileMenuOpen(false)}
                 >

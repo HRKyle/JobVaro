@@ -108,6 +108,20 @@ CREATE TABLE IF NOT EXISTS jobs_feed (
 CREATE INDEX IF NOT EXISTS idx_jobs_feed_company ON jobs_feed(company_slug);
 CREATE INDEX IF NOT EXISTS idx_jobs_feed_posted ON jobs_feed(posted_at DESC);
 
+-- AI-powered resume/job match analyses
+CREATE TABLE IF NOT EXISTS compass_analyses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id),
+  job_title TEXT NOT NULL,
+  company TEXT,
+  job_description TEXT NOT NULL,
+  resume_text TEXT NOT NULL,
+  match_score INTEGER,
+  report_json JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_compass_analyses_user ON compass_analyses(user_id, created_at DESC);
+
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_saved_jobs_user_id     ON saved_jobs(user_id);
 CREATE INDEX IF NOT EXISTS idx_applications_user_id   ON applications(user_id);
