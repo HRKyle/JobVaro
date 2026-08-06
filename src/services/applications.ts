@@ -242,18 +242,18 @@ export const createApplication = createServerFn({ method: "POST" }).handler(
         (planRows[0] as { plan: string } | undefined)?.plan ?? "free",
       );
 
-      if (plan !== "pro") {
+      if (!["pro", "sprint", "momentum"].includes(plan)) {
         const countRows = await sql`
           SELECT COUNT(*)::int AS count FROM applications WHERE user_id = ${user_id}
         `;
         const currentCount =
           (countRows[0] as { count: number }).count ?? 0;
 
-        if (currentCount >= 20) {
+        if (currentCount >= 5) {
           return {
             success: false,
             error:
-              "Free plan limited to 20 applications. Upgrade to Pro for unlimited tracking.",
+              "Free plan limited to 5 applications. Upgrade to Pro for unlimited tracking.",
           };
         }
       }

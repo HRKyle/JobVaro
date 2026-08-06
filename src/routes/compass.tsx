@@ -206,7 +206,7 @@ function CompassWorkspace({ user: _user }: { user: AuthUser }) {
                 <span className="relative">🧭</span>
               </div>
               <h3 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">
-                You&apos;ve used your 3 free analyses
+                You&apos;ve used your free analysis
               </h3>
               <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-gray-600 dark:text-gray-400">
                 Upgrade to Pro for unlimited AI résumé–job matching — know your

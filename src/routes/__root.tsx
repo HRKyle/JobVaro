@@ -267,7 +267,10 @@ function RootComponent() {
         <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/80">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
             <a href="/" aria-label="JobVaro home">
-              <Logo name={businessName} />
+              <div className="flex items-center gap-2">
+                <Logo name={businessName} />
+                <span className="hidden text-[10px] font-medium text-gray-400 sm:inline">by HRKyle</span>
+              </div>
             </a>
 
             {/* Desktop nav links */}

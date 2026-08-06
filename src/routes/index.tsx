@@ -532,8 +532,8 @@ function Home() {
       {/* ══════════════════════════════════════════════════════════════════════
           COMPASS — AI RÉSUMÉ-JOB MATCHING
           ══════════════════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden px-6 py-24 sm:py-32">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_left,_var(--tw-gradient-stops))] from-teal-50 via-transparent to-transparent dark:from-teal-950/30" />
+      <section className="relative px-6 py-24 sm:py-32">
+        <div className="absolute inset-0 -z-10 overflow-hidden bg-[radial-gradient(ellipse_at_left,_var(--tw-gradient-stops))] from-teal-50 via-transparent to-transparent dark:from-teal-950/30" />
         <div className="mx-auto max-w-6xl">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             {/* Left: pitch + CTA */}
@@ -561,7 +561,7 @@ function Home() {
                   Check your fit — free
                 </a>
                 <p className="self-center text-sm text-gray-500 dark:text-gray-400">
-                  Free plan includes 3 analyses. No card required.
+                  Free plan includes 1 analysis. Paid plans include 25/month; add-ons are $0.99.
                 </p>
               </div>
             </FadeInSection>
@@ -744,15 +744,15 @@ function Home() {
             </p>
           </FadeInSection>
 
-          <div className="mx-auto grid max-w-3xl gap-8 pt-4 lg:grid-cols-2">
+          <div className="mx-auto grid max-w-6xl gap-6 pt-4 sm:grid-cols-2 lg:grid-cols-4">
             <FadeInSection>
               <PricingCard
                 name="Free"
                 price="$0"
                 period="forever"
                 features={[
-                  "Up to 20 tracked applications",
-                  "3 Compass AI analyses",
+                  "5 tracked applications",
+                  "1 Compass AI analysis",
                   "Basic job search",
                   "Community job board access",
                   "URL auto-fill for jobs",
@@ -765,11 +765,11 @@ function Home() {
             <FadeInSection threshold={0.1}>
               <PricingCard
                 name="Pro"
-                price="$12"
+                price="$14.95"
                 period="/month"
                 features={[
                   "Unlimited tracked applications",
-                  "Unlimited Compass analyses",
+                  "25 Compass analyses/month (then $0.99 each)",
                   "Company watchlist",
                   "Priority support",
                 ]}

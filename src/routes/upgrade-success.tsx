@@ -16,7 +16,7 @@ export const Route = createFileRoute("/upgrade-success")({
 
 const proFeatureList = [
   "Unlimited tracked applications",
-  "Unlimited Compass analyses",
+  "25 Compass analyses per month (then $0.99 each)",
   "Priority support",
 ];
 

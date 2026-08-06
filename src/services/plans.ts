@@ -24,7 +24,14 @@ export interface PlanCheckResult {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const FREE_LIMIT = 20;
+export const FREE_LIMIT = 5;
+export const PAID_COMPASS_MONTHLY_LIMIT = 25;
+export const STRIPE_PRICE_IDS = {
+  proMonthly: "price_1U1SOID0o28wel4T3OQ3s6CS",
+  sprintPass: "price_1U1SOID0o28wel4TG8Cfafa8",
+  momentumPass: "price_1U1SOID0o28wel4TjytSswKy",
+  compassAddOn: "price_1U1SOID0o28wel4TW4cBSLvr",
+} as const;
 
 async function getUserId(): Promise<string | null> {
   const { getCookie } = await import("@tanstack/react-start/server");
@@ -57,7 +64,7 @@ export const getCurrentPlan = createServerFn({ method: "GET" }).handler(
       `;
       if (userRows.length === 0) return null;
       const plan = String((userRows[0] as { plan: string }).plan ?? "free");
-      const isPro = plan === "pro";
+      const isPro = ["pro", "sprint", "momentum"].includes(plan);
 
       const countRows = await sql`
         SELECT COUNT(*)::int AS count FROM applications WHERE user_id = ${userId}
@@ -95,7 +102,7 @@ export const checkApplicationLimit = createServerFn({
     const plan = String(
       (userRows[0] as { plan: string } | undefined)?.plan ?? "free",
     );
-    const isPro = plan === "pro";
+    const isPro = ["pro", "sprint", "momentum"].includes(plan);
 
     const countRows = await sql`
       SELECT COUNT(*)::int AS count FROM applications WHERE user_id = ${userId}

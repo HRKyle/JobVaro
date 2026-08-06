@@ -132,6 +132,7 @@ function PlanCard({
   features,
   isPro,
   isCurrentPlan,
+  period,
   ctaLink,
   ctaLabel,
   ctaDisabled,
@@ -143,6 +144,7 @@ function PlanCard({
   features: { name: string; included: boolean }[];
   isPro: boolean;
   isCurrentPlan: boolean;
+  period?: string;
   ctaLink: string;
   ctaLabel: string;
   ctaDisabled?: boolean;
@@ -173,7 +175,7 @@ function PlanCard({
           {price}
         </span>
         {price !== "Free" && (
-          <span className="text-sm text-gray-500 dark:text-gray-400">/mo</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">{period ?? "/mo"}</span>
         )}
       </div>
       <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
@@ -259,13 +261,13 @@ function PlansPage() {
 
   const freeFeatures = [
     { name: "Basic search", included: true },
-    { name: "Up to 20 tracked applications", included: true },
+    { name: "5 tracked applications", included: true },
     { name: "Basic filters", included: true },
     { name: "Application status tracking", included: true },
     { name: "Timeline events", included: true },
-    { name: "3 Compass AI analyses", included: true },
+    { name: "1 Compass AI analysis", included: true },
     { name: "Unlimited tracked applications", included: false },
-    { name: "Unlimited Compass analyses", included: false },
+    { name: "25 Compass analyses/month", included: false },
     { name: "Priority support", included: false },
   ];
 
@@ -275,7 +277,7 @@ function PlansPage() {
     { name: "Application status tracking", included: true },
     { name: "Timeline events", included: true },
     { name: "Unlimited tracked applications", included: true },
-    { name: "Unlimited Compass analyses", included: true },
+    { name: "25 Compass analyses/month", included: true },
     { name: "Priority support", included: true },
   ];
 
@@ -303,10 +305,10 @@ function PlansPage() {
     "Basic filters",
     "Application status tracking",
     "Timeline events",
-    "Up to 20 tracked applications",
+    "5 tracked applications",
     "Unlimited tracked applications",
-    "3 Compass AI analyses",
-    "Unlimited Compass analyses",
+    "25 Compass analyses/month",
+    "25 Compass analyses/month",
     "Priority support",
   ].filter((name) => featureMap.has(name));
 
@@ -334,10 +336,10 @@ function PlansPage() {
       )}
 
       {/* Plan cards (mobile-friendly stacked layout) */}
-      <div className="mb-12 grid gap-6 md:grid-cols-2">
+      <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <PlanCard
           name="Free"
-          price="Free"
+          price="$0"
           description="Everything you need to get started with your job search."
           features={freeFeatures}
           isPro={false}
@@ -347,15 +349,23 @@ function PlansPage() {
           ctaDisabled={!isPro}
         />
         <PlanCard
-          name="Pro"
-          price="$12"
-          description="Unlock unlimited tracking and advanced features."
-          features={proFeatures}
-          isPro={true}
-          isCurrentPlan={isPro}
-          ctaLink={isPro ? "#" : STRIPE_CHECKOUT_URL}
-          ctaLabel={isPro ? "Current plan" : "Upgrade to Pro"}
-          highlight={!isPro}
+          name="Pro" price="$14.95" period="/month"
+          description="Unlimited tracking and 25 Compass analyses each month."
+          features={[...proFeatures.filter((f) => !f.name.includes("analyses")), { name: "25 Compass analyses/month (then $0.99 each)", included: true }]}
+          isPro={true} isCurrentPlan={planInfo?.plan === "pro"}
+          ctaLink={STRIPE_CHECKOUT_URL} ctaLabel="Upgrade to Pro" highlight={!isPro}
+        />
+        <PlanCard
+          name="Sprint Pass" price="$29.95" period="total · $9.98/mo"
+          description="3 months of Pro access, with no auto-renewal."
+          features={proFeatures} isPro={true} isCurrentPlan={planInfo?.plan === "sprint"}
+          ctaLink={STRIPE_CHECKOUT_URL} ctaLabel="Get Sprint Pass"
+        />
+        <PlanCard
+          name="Momentum Pass" price="$44.95" period="total · $7.49/mo"
+          description="6 months of Pro access, with no auto-renewal."
+          features={proFeatures} isPro={true} isCurrentPlan={planInfo?.plan === "momentum"}
+          ctaLink={STRIPE_CHECKOUT_URL} ctaLabel="Get Momentum Pass"
         />
       </div>
 

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
+import { PAID_COMPASS_MONTHLY_LIMIT, STRIPE_PRICE_IDS } from "~/services/plans";
 
 export interface CompassReport {
   matchScore: number; candidateFit: number; resumeEffectiveness: number;
@@ -32,16 +33,17 @@ export const analyzeCompass = createServerFn({ method: "POST" }).handler(async (
     const session = await getSession();
     if (!session) return { success: false, error: "Please sign in to use Compass." };
 
-    // Free-plan cap: 3 analyses per user. Pro users are unlimited.
+    // Free users receive one lifetime analysis; paid plans receive 25 each calendar month.
     const userRows = await sql`SELECT plan FROM users WHERE id = ${session.userId} LIMIT 1`;
     const plan = String((userRows[0] as { plan?: string } | undefined)?.plan ?? "free");
-    const isPro = plan === "pro";
-    if (!isPro) {
-      const countRows = await sql`SELECT COUNT(*)::int AS count FROM compass_analyses WHERE user_id = ${session.userId}`;
-      const count = (countRows[0] as { count: number }).count ?? 0;
-      if (count >= 3) {
-        return { success: false, error: "Free plan includes 3 Compass analyses. Upgrade to Pro for unlimited analyses.", upgradeRequired: true };
-      }
+    const isPaid = ["pro", "sprint", "momentum"].includes(plan);
+    const countRows = isPaid
+      ? await sql`SELECT COUNT(*)::int AS count FROM compass_analyses WHERE user_id = ${session.userId} AND created_at >= date_trunc('month', CURRENT_TIMESTAMP)`
+      : await sql`SELECT COUNT(*)::int AS count FROM compass_analyses WHERE user_id = ${session.userId}`;
+    const count = (countRows[0] as { count: number }).count ?? 0;
+    const limit = isPaid ? PAID_COMPASS_MONTHLY_LIMIT : 1;
+    if (count >= limit) {
+      return { success: false, error: isPaid ? "You've used all 25 Compass analyses this month. Purchase an additional analysis for $0.99 to continue." : "Free plan includes 1 Compass analysis. Upgrade to Pro or purchase an additional analysis for $0.99 to continue.", upgradeRequired: true, addOnPriceId: STRIPE_PRICE_IDS.compassAddOn } as never;
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
