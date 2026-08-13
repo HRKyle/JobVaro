@@ -28,14 +28,12 @@ export function Footer({ brandName = "JobVaro" }: { brandName?: string }) {
           ))}
         </nav>
       </div>
-      <div className="mx-auto mt-8 flex max-w-6xl items-center justify-center gap-3 border-t border-gray-100 pt-6 text-center text-sm text-gray-400 dark:border-gray-800 dark:text-gray-600">
-        <span>Part of HRKyle Services</span>
-        <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-gray-700" />
-        <span>Your Guide Through the World of Work™</span>
+      <div className="mx-auto mt-8 flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-2 border-t border-gray-100 pt-6 text-center text-sm text-gray-400 dark:border-gray-800 dark:text-gray-600">
+        <span>A Product of HRKyle Services</span>
         <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-gray-700" />
         <span>© {new Date().getFullYear()} {brandName}</span>
         <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-gray-700" />
-        <span>Built for job seekers, by job seekers</span>
+        <span>Built for Job Seekers by Recruiting Pros</span>
       </div>
     </footer>
   );

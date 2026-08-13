@@ -6,6 +6,11 @@ import { getCurrentUser, logout, type AuthUser } from "~/auth/functions";
 import { AuthForms } from "~/components/AuthForms";
 import { BookmarkletInstructions } from "~/components/BookmarkletInstructions";
 
+// ── Stripe payment links (one-time / prepaid checkouts) ──────────────────────
+const STRIPE_PRO_MONTHLY = "https://buy.stripe.com/bJebJ05iHdze69l3Ch9MY09";
+const STRIPE_SPRINT_PASS = "https://buy.stripe.com/5kQdR8aD152IdBN2yd9MY07";
+const STRIPE_MOMENTUM_PASS = "https://buy.stripe.com/7sY7sK4eD2UA2X90q59MY08";
+
 // Read the business name at request time from site.json
 const getBusinessName = createServerFn({ method: "GET" }).handler(async () => {
   try {
@@ -233,6 +238,8 @@ function PricingCard({
   cta,
   highlighted = false,
   planId,
+  ctaHref,
+  badge,
 }: {
   name: string;
   price: string;
@@ -241,7 +248,10 @@ function PricingCard({
   cta: string;
   highlighted?: boolean;
   planId?: string;
+  ctaHref?: string;
+  badge?: string;
 }) {
+  const href = ctaHref ?? (planId === "signup" ? "#signup" : "/plans");
   return (
     <div
       className={`relative flex flex-col rounded-2xl p-8 transition-all duration-300 ${
@@ -255,7 +265,12 @@ function PricingCard({
           <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5L5.7 21l2.3-7.2-6-4.6h7.6z" />
           </svg>
-          Most Popular
+          {badge ?? "Most Popular"}
+        </span>
+      )}
+      {!highlighted && badge && (
+        <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center rounded-full border border-teal-200 bg-teal-50 px-3 py-0.5 text-xs font-bold text-teal-700 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-300">
+          {badge}
         </span>
       )}
       <h3 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
@@ -291,7 +306,7 @@ function PricingCard({
         ))}
       </ul>
       <a
-        href={planId === "signup" ? "#signup" : "/plans"}
+        href={href}
         className={`block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
           highlighted
             ? "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/40"
@@ -543,7 +558,7 @@ function Home() {
               </span>
               <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-gray-100">
                 Know your odds{" "}
-                <span className="bg-gradient-to-r from-teal-600 to-indigo-500 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-teal-600 to-indigo-500 bg-clip-text text-transparent box-decoration-clone">
                   before you apply
                 </span>
               </h2>
@@ -774,10 +789,50 @@ function Home() {
                   "Priority support",
                 ]}
                 cta="Upgrade to Pro"
+                ctaHref={STRIPE_PRO_MONTHLY}
                 highlighted
               />
             </FadeInSection>
+            <FadeInSection threshold={0.1}>
+              <PricingCard
+                name="Sprint Pass"
+                price="$29.95"
+                period="one-time · 3 months"
+                features={[
+                  "3 months of Pro access",
+                  "Unlimited tracked applications",
+                  "25 Compass analyses/month (then $0.99 each)",
+                  "No auto-renewal",
+                ]}
+                cta="Get Sprint Pass"
+                ctaHref={STRIPE_SPRINT_PASS}
+              />
+            </FadeInSection>
+            <FadeInSection threshold={0.1}>
+              <PricingCard
+                name="Momentum Pass"
+                price="$44.95"
+                period="one-time · 6 months"
+                features={[
+                  "6 months of Pro access",
+                  "Unlimited tracked applications",
+                  "25 Compass analyses/month (then $0.99 each)",
+                  "Best value · no auto-renewal",
+                ]}
+                cta="Get Momentum Pass"
+                ctaHref={STRIPE_MOMENTUM_PASS}
+                badge="Best Value"
+              />
+            </FadeInSection>
           </div>
+          <p className="mt-10 text-center">
+            <a
+              href="/plans"
+              className="text-sm font-semibold text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+            >
+              Compare all plans in detail →
+            </a>
+          </p>
         </div>
       </section>
 

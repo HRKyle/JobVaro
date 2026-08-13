@@ -4,9 +4,11 @@ import { readFile } from "node:fs/promises";
 import { getCurrentUser, type AuthUser } from "~/auth/functions";
 import { getCurrentPlan, type PlanInfo } from "~/services/plans";
 
-// ── Configurable Stripe checkout URL ─────────────────────────────────────────
-// Update this when the actual Stripe payment link is created.
-const STRIPE_CHECKOUT_URL = "/stripe-checkout";
+// ── Stripe payment links ─────────────────────────────────────────────────────
+const STRIPE_PRO_MONTHLY = "https://buy.stripe.com/bJebJ05iHdze69l3Ch9MY09";
+const STRIPE_SPRINT_PASS = "https://buy.stripe.com/5kQdR8aD152IdBN2yd9MY07";
+const STRIPE_MOMENTUM_PASS = "https://buy.stripe.com/7sY7sK4eD2UA2X90q59MY08";
+const STRIPE_COMPASS_ADDON = "https://buy.stripe.com/9B628qdPdan2apBgp39MY0a";
 
 // ── Server loader ────────────────────────────────────────────────────────────
 
@@ -353,19 +355,19 @@ function PlansPage() {
           description="Unlimited tracking and 25 Compass analyses each month."
           features={[...proFeatures.filter((f) => !f.name.includes("analyses")), { name: "25 Compass analyses/month (then $0.99 each)", included: true }]}
           isPro={true} isCurrentPlan={planInfo?.plan === "pro"}
-          ctaLink={STRIPE_CHECKOUT_URL} ctaLabel="Upgrade to Pro" highlight={!isPro}
+          ctaLink={STRIPE_PRO_MONTHLY} ctaLabel="Upgrade to Pro" highlight={!isPro}
         />
         <PlanCard
           name="Sprint Pass" price="$29.95" period="total · $9.98/mo"
           description="3 months of Pro access, with no auto-renewal."
           features={proFeatures} isPro={true} isCurrentPlan={planInfo?.plan === "sprint"}
-          ctaLink={STRIPE_CHECKOUT_URL} ctaLabel="Get Sprint Pass"
+          ctaLink={STRIPE_SPRINT_PASS} ctaLabel="Get Sprint Pass"
         />
         <PlanCard
           name="Momentum Pass" price="$44.95" period="total · $7.49/mo"
           description="6 months of Pro access, with no auto-renewal."
           features={proFeatures} isPro={true} isCurrentPlan={planInfo?.plan === "momentum"}
-          ctaLink={STRIPE_CHECKOUT_URL} ctaLabel="Get Momentum Pass"
+          ctaLink={STRIPE_MOMENTUM_PASS} ctaLabel="Get Momentum Pass"
         />
       </div>
 
