@@ -781,8 +781,9 @@ function Home() {
               <PricingCard
                 name="Pro"
                 price="$14.95"
-                period="/month"
+                period="one-time · 1 month"
                 features={[
+                  "1 month of Pro access, no auto-renewal",
                   "Unlimited tracked applications",
                   "25 Compass analyses/month (then $0.99 each)",
                   "Company watchlist",

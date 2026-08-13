@@ -351,8 +351,8 @@ function PlansPage() {
           ctaDisabled={!isPro}
         />
         <PlanCard
-          name="Pro" price="$14.95" period="/month"
-          description="Unlimited tracking and 25 Compass analyses each month."
+          name="Pro" price="$14.95" period="one-time · 1 month"
+          description="1 month of Pro access, with no auto-renewal."
           features={[...proFeatures.filter((f) => !f.name.includes("analyses")), { name: "25 Compass analyses/month (then $0.99 each)", included: true }]}
           isPro={true} isCurrentPlan={planInfo?.plan === "pro"}
           ctaLink={STRIPE_PRO_MONTHLY} ctaLabel="Upgrade to Pro" highlight={!isPro}
@@ -429,8 +429,9 @@ function PlansPage() {
       {/* FAQ / reassurance */}
       <div className="mt-12 text-center">
         <p className="text-sm text-gray-400 dark:text-gray-500">
-          You can upgrade, downgrade, or cancel at any time. No long-term
-          contracts.
+          No plan auto-renews — every paid plan is a one-time purchase for a
+          fixed term. You can upgrade, downgrade, or cancel at any time. No
+          long-term contracts.
         </p>
       </div>
     </main>

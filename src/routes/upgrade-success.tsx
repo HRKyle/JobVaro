@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getCurrentUser, type AuthUser } from "~/auth/functions";
-import { getCurrentPlan, type PlanInfo } from "~/services/plans";
+import {
+  getCurrentPlan,
+  PLAN_DURATION_DAYS,
+  PLAN_LABELS,
+  planDurationLabel,
+  type PaidPlan,
+  type PlanInfo,
+} from "~/services/plans";
 
 export const Route = createFileRoute("/upgrade-success")({
   loader: async () => {
@@ -23,6 +30,12 @@ const proFeatureList = [
 function UpgradeSuccessPage() {
   const { user, planInfo } = Route.useLoaderData();
 
+  const plan = (planInfo?.plan ?? "pro") as string;
+  const isPaid = ["pro", "sprint", "momentum"].includes(plan);
+  const paidPlan = (isPaid ? plan : "pro") as PaidPlan;
+  const planName = PLAN_LABELS[paidPlan];
+  const durationLabel = planDurationLabel(paidPlan);
+
   return (
     <main className="flex min-h-[80dvh] flex-col items-center justify-center px-4 text-center">
       {/* Success icon */}
@@ -43,11 +56,12 @@ function UpgradeSuccessPage() {
       </div>
 
       <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl">
-        Welcome to Pro!
+        Welcome to {planName}!
       </h1>
       <p className="mt-3 max-w-md text-lg text-gray-500 dark:text-gray-400">
-        {user?.name ? `Thanks, ${user.name}!` : "Thanks!"} Your Pro subscription
-        is now active. Here's what you've unlocked:
+        {user?.name ? `Thanks, ${user.name}!` : "Thanks!"} Your {planName}{" "}
+        access is active for {durationLabel} — a one-time purchase with no
+        auto-renewal. Here's what you've unlocked:
       </p>
 
       {/* Feature unlocks */}

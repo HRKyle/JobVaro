@@ -3,14 +3,20 @@
 
 -- Users table: core user accounts
 CREATE TABLE IF NOT EXISTS users (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email         VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  name          VARCHAR(255),
-  plan          VARCHAR(50)  DEFAULT 'free',
-  is_admin      BOOLEAN      DEFAULT FALSE,
-  created_at    TIMESTAMPTZ  DEFAULT now()
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email               VARCHAR(255) UNIQUE NOT NULL,
+  password_hash       VARCHAR(255) NOT NULL,
+  name                VARCHAR(255),
+  plan                VARCHAR(50)  DEFAULT 'free',
+  plan_expires_at     TIMESTAMPTZ,             -- fixed expiry of a one-time paid plan (NULL = never expires)
+  expiry_notice_level INT DEFAULT 0,           -- highest expiry-notice threshold already delivered (7/5/3/1)
+  is_admin            BOOLEAN      DEFAULT FALSE,
+  created_at          TIMESTAMPTZ  DEFAULT now()
 );
+
+-- Fixed-term paid plan columns (no auto-renewal - paid plans revert to free on plan_expires_at)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS expiry_notice_level INT DEFAULT 0;
 
 -- Saved / bookmarked jobs (from external sources or manual entry)
 CREATE TABLE IF NOT EXISTS saved_jobs (
