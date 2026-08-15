@@ -10,6 +10,24 @@
 // the takeover works across user boundaries.
 import handler from "./dist/server/server.js";
 import { neon } from "@neondatabase/serverless";
+import { sql } from "./src/db";
+
+// ── DB keep-alive ────────────────────────────────────────────────────────
+// Neon's SQL-over-HTTP endpoint can go cold after a short idle (and right
+// after a `bun run publish` restart); the first query then aborts with a
+// transient TimeoutError. A lightweight `SELECT 1` every 45s (plus one at
+// boot) keeps the endpoint warm so real user queries — signup, login, the
+// community board — rarely hit a cold start. Failures are logged and
+// swallowed; this is best-effort only. The timer lives in the server entry,
+// so it only runs while the server process runs and never interferes with
+// the build/publish phase.
+const pingDb = () => {
+  sql`SELECT 1`.catch((err: unknown) => {
+    console.error("keep-alive ping failed:", err instanceof Error ? err.message : err);
+  });
+};
+pingDb();
+setInterval(pingDb, 45_000);
 
 // Pinned, NOT read from the environment. The published preview URL
 // (<label>.<PUBLIC_SITE_DOMAIN>) is reverse-proxied to 0.0.0.0:3000 inside the

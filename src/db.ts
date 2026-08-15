@@ -20,6 +20,47 @@ function getSql(): ReturnType<typeof neon> {
 }
 
 /**
+ * Whether an error is a transient connection failure worth retrying.
+ *
+ * The Neon SQL-over-HTTP driver wraps ANY fetch error as
+ * "Error connecting to database: …" (index.mjs ~line 1291-1292) and has no
+ * built-in retry. The underlying fetch abort is transient — Neon endpoint cold
+ * start / contention — and the wrapped error's `.sourceError` carries the real
+ * DOMException whose name is "TimeoutError" (or "AbortError"). Retrying the
+ * same query almost always succeeds immediately. Anything else (syntax errors,
+ * unique violations, auth failures) must surface immediately, never be retried.
+ */
+function isTransientConnectionError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const e = err as Error & { sourceError?: { name?: string } };
+  return (
+    e.name === "TimeoutError" ||
+    e.name === "AbortError" ||
+    e.sourceError?.name === "TimeoutError" ||
+    e.sourceError?.name === "AbortError" ||
+    e.message.includes("Error connecting to database")
+  );
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Execute a query with up to 2 retries (short backoff) when it fails with a
+ * transient Neon connection timeout. All other errors are re-thrown unchanged.
+ */
+async function withRetry<T>(run: () => Promise<T>): Promise<T> {
+  const backoffs = [150, 400];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await run();
+    } catch (err) {
+      if (!isTransientConnectionError(err) || attempt >= backoffs.length) throw err;
+      await sleep(backoffs[attempt] as number);
+    }
+  }
+}
+
+/**
  * Dual-mode SQL helper — supports both tagged-template and raw-string calls:
  *
  *   // Tagged template (safe, parameterised):
@@ -35,8 +76,8 @@ export function sql(queryString: string, ...params: unknown[]): ReturnType<Retur
 export function sql(first: string | TemplateStringsArray, ...rest: unknown[]): ReturnType<ReturnType<typeof neon>> {
   if (typeof first === "string") {
     // Raw SQL string call — use .query() for parameterised queries
-    return getSql().query(first, rest) as ReturnType<ReturnType<typeof neon>>;
+    return withRetry(() => getSql().query(first, rest)) as ReturnType<ReturnType<typeof neon>>;
   }
   // Tagged template call
-  return getSql()(first, ...rest);
+  return withRetry(() => getSql()(first, ...rest));
 }
