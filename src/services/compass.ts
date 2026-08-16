@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
-import { PAID_COMPASS_MONTHLY_LIMIT, STRIPE_PRICE_IDS } from "~/services/plans";
+import { PAID_COMPASS_MONTHLY_LIMIT, STRIPE_PRICE_IDS, getGraceStateForUser } from "~/services/plans";
 
 export interface CompassReport {
   matchScore: number; candidateFit: number; resumeEffectiveness: number;
@@ -61,3 +61,55 @@ export const analyzeCompass = createServerFn({ method: "POST" }).handler(async (
     return { success: false, error: "We couldn't complete the analysis. Please check your inputs and try again." };
   }
 });
+
+export interface CompassAnalysisSummary {
+  id: string;
+  job_title: string;
+  company: string | null;
+  match_score: number | null;
+  created_at: string;
+}
+
+/**
+ * List the logged-in user's Compass analyses, newest first. Locking
+ * (data-lapse policy): while the user is free AND in grace, only the newest
+ * analysis is visible — rows stay in the DB (query-level lock).
+ */
+export const getCompassAnalyses = createServerFn({ method: "GET" }).handler(
+  async (): Promise<CompassAnalysisSummary[]> => {
+    const { getSession } = await import("~/auth/session");
+    const session = await getSession();
+    if (!session) return [];
+
+    try {
+      const grace = await getGraceStateForUser(session.userId);
+      const locked = grace.inGrace;
+
+      const rows = locked
+        ? await sql`
+          SELECT id, job_title, company, match_score, created_at
+          FROM compass_analyses
+          WHERE user_id = ${session.userId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `
+        : await sql`
+          SELECT id, job_title, company, match_score, created_at
+          FROM compass_analyses
+          WHERE user_id = ${session.userId}
+          ORDER BY created_at DESC
+        `;
+
+      return (rows as Record<string, unknown>[]).map((r) => ({
+        id: String(r.id),
+        job_title: String(r.job_title),
+        company: r.company ? String(r.company) : null,
+        match_score: r.match_score === null || r.match_score === undefined ? null : Number(r.match_score),
+        created_at: r.created_at ? String(r.created_at) : "",
+      }));
+    } catch (error) {
+      console.error("getCompassAnalyses error:", error);
+      return [];
+    }
+  },
+);

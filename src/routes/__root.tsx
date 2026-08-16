@@ -13,7 +13,7 @@ import { Logo } from "~/components/Logo";
 import { Footer } from "~/components/Footer";
 import { Toaster } from "~/components/toast";
 import { ExpiryNoticeBanner } from "~/components/ExpiryNoticeBanner";
-import { getExpiryNotice } from "~/services/plans";
+import { getExpiryNotice, getGraceStatus } from "~/services/plans";
 
 import appCss from "~/styles/app.css?url";
 
@@ -40,12 +40,13 @@ export const Route = createRootRoute({
   }),
   notFoundComponent: () => <div>Page not found</div>,
   loader: async () => {
-    const [businessName, userResult, expiryNotice] = await Promise.all([
+    const [businessName, userResult, expiryNotice, graceStatus] = await Promise.all([
       getBusinessName(),
       getCurrentUser(),
       getExpiryNotice(),
+      getGraceStatus(),
     ]);
-    return { businessName, user: userResult.user, expiryNotice };
+    return { businessName, user: userResult.user, expiryNotice, graceStatus };
   },
   component: RootComponent,
 });
@@ -234,7 +235,7 @@ function UserMenu({
 }
 
 function RootComponent() {
-  const { businessName, user: initialUser, expiryNotice } = Route.useLoaderData();
+  const { businessName, user: initialUser, expiryNotice, graceStatus } = Route.useLoaderData();
   const location = useLocation();
   const [user, setUser] = useState<AuthUser | null>(initialUser);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -416,8 +417,8 @@ function RootComponent() {
           )}
         </nav>
 
-        {/* In-app expiry notice banner — renders nothing for logged-out/free users */}
-        <ExpiryNoticeBanner notice={expiryNotice} />
+        {/* In-app expiry/grace notice banners — render nothing for logged-out/free users */}
+        <ExpiryNoticeBanner notice={expiryNotice} grace={graceStatus} />
 
         {/* Page content with fade-in transition on route change */}
         <div

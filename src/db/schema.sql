@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
   plan                VARCHAR(50)  DEFAULT 'free',
   plan_expires_at     TIMESTAMPTZ,             -- fixed expiry of a one-time paid plan (NULL = never expires)
   expiry_notice_level INT DEFAULT 0,           -- highest expiry-notice threshold already delivered (7/5/3/1)
+  grace_ends_at       TIMESTAMPTZ,             -- end of the 30-day post-lapse grace period (NULL = no grace active)
+  grace_notice_level  INT DEFAULT 0,           -- 0=none, 1=lapse-day email sent, 2=final-warning email sent
   is_admin            BOOLEAN      DEFAULT FALSE,
   created_at          TIMESTAMPTZ  DEFAULT now()
 );
@@ -17,6 +19,11 @@ CREATE TABLE IF NOT EXISTS users (
 -- Fixed-term paid plan columns (no auto-renewal - paid plans revert to free on plan_expires_at)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS expiry_notice_level INT DEFAULT 0;
+
+-- Data-lapse policy (Option A): 30-day grace after a paid plan lapses, then
+-- over-limit data is permanently deleted. grace_notice_level dedups emails.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS grace_ends_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS grace_notice_level INT DEFAULT 0;
 
 -- Saved / bookmarked jobs (from external sources or manual entry)
 CREATE TABLE IF NOT EXISTS saved_jobs (
@@ -46,8 +53,14 @@ CREATE TABLE IF NOT EXISTS applications (
   notes       TEXT,
   follow_up_at TIMESTAMPTZ,
   job_url     TEXT,
+  created_at  TIMESTAMPTZ DEFAULT now(),
   updated_at  TIMESTAMPTZ DEFAULT now()
 );
+
+-- created_at is used by the data-lapse policy to determine the "5 most
+-- recently created" applications (locked vs kept during grace).
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
+UPDATE applications SET created_at = COALESCE(created_at, applied_at, updated_at, now()) WHERE created_at IS NULL;
 
 -- Timeline events for each application (status changes, interviews, etc.)
 CREATE TABLE IF NOT EXISTS application_events (

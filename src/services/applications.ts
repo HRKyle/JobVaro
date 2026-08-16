@@ -5,6 +5,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
+import { FREE_LIMIT, getGraceStateForUser } from "~/services/plans";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -129,20 +130,42 @@ export const getApplications = createServerFn({ method: "GET" }).handler(
     if (new Date(expires_at) < new Date()) return [];
 
     try {
-      const rows = await sql`
-        SELECT
-          a.*,
-          COALESCE(
-            (SELECT COUNT(*) FROM application_events WHERE application_id = a.id),
-            0
-          )::int AS event_count,
-          sj.url AS job_url,
-          sj.source AS job_source
-        FROM applications a
-        LEFT JOIN saved_jobs sj ON a.job_id = sj.id
-        WHERE a.user_id = ${user_id}
-        ORDER BY a.updated_at DESC
-      `;
+      // Locking (data-lapse policy): while a user is free AND in grace, only
+      // the 5 most recently created applications are visible. Rows stay in the
+      // DB — this is a query-level lock.
+      const grace = await getGraceStateForUser(user_id);
+      const locked = grace.inGrace;
+
+      const rows = locked
+        ? await sql`
+          SELECT
+            a.*,
+            COALESCE(
+              (SELECT COUNT(*) FROM application_events WHERE application_id = a.id),
+              0
+            )::int AS event_count,
+            sj.url AS job_url,
+            sj.source AS job_source
+          FROM applications a
+          LEFT JOIN saved_jobs sj ON a.job_id = sj.id
+          WHERE a.user_id = ${user_id}
+          ORDER BY a.created_at DESC
+          LIMIT ${FREE_LIMIT}
+        `
+        : await sql`
+          SELECT
+            a.*,
+            COALESCE(
+              (SELECT COUNT(*) FROM application_events WHERE application_id = a.id),
+              0
+            )::int AS event_count,
+            sj.url AS job_url,
+            sj.source AS job_source
+          FROM applications a
+          LEFT JOIN saved_jobs sj ON a.job_id = sj.id
+          WHERE a.user_id = ${user_id}
+          ORDER BY a.updated_at DESC
+        `;
 
       return (rows as Record<string, unknown>[]).map((row) =>
         serializeApplication(row),
@@ -172,20 +195,46 @@ export const getApplication = createServerFn({ method: "GET" }).handler(
     const { id } = (data ?? {}) as { id: string };
 
     try {
-      const rows = await sql`
-        SELECT
-          a.*,
-          COALESCE(
-            (SELECT COUNT(*) FROM application_events WHERE application_id = a.id),
-            0
-          )::int AS event_count,
-          sj.url AS job_url,
-          sj.source AS job_source
-        FROM applications a
-        LEFT JOIN saved_jobs sj ON a.job_id = sj.id
-        WHERE a.id = ${id} AND a.user_id = ${user_id}
-        LIMIT 1
-      `;
+      // Locking: in grace, only the 5 most recently created applications are
+      // reachable — locked ones 404 for the user (rows remain in the DB).
+      const grace = await getGraceStateForUser(user_id);
+      const locked = grace.inGrace;
+
+      const rows = locked
+        ? await sql`
+          SELECT
+            a.*,
+            COALESCE(
+              (SELECT COUNT(*) FROM application_events WHERE application_id = a.id),
+              0
+            )::int AS event_count,
+            sj.url AS job_url,
+            sj.source AS job_source
+          FROM applications a
+          LEFT JOIN saved_jobs sj ON a.job_id = sj.id
+          WHERE a.id = ${id} AND a.user_id = ${user_id}
+            AND a.id IN (
+              SELECT id FROM applications
+              WHERE user_id = ${user_id}
+              ORDER BY created_at DESC
+              LIMIT ${FREE_LIMIT}
+            )
+          LIMIT 1
+        `
+        : await sql`
+          SELECT
+            a.*,
+            COALESCE(
+              (SELECT COUNT(*) FROM application_events WHERE application_id = a.id),
+              0
+            )::int AS event_count,
+            sj.url AS job_url,
+            sj.source AS job_source
+          FROM applications a
+          LEFT JOIN saved_jobs sj ON a.job_id = sj.id
+          WHERE a.id = ${id} AND a.user_id = ${user_id}
+          LIMIT 1
+        `;
 
       if (rows.length === 0) return null;
 

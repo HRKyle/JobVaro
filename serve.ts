@@ -11,6 +11,7 @@
 import handler from "./dist/server/server.js";
 import { neon } from "@neondatabase/serverless";
 import { sql } from "./src/db";
+import { runLapseSweep } from "./src/services/lapse-sweep";
 
 // ── DB keep-alive ────────────────────────────────────────────────────────
 // Neon's SQL-over-HTTP endpoint can go cold after a short idle (and right
@@ -28,6 +29,21 @@ const pingDb = () => {
 };
 pingDb();
 setInterval(pingDb, 45_000);
+
+// ── Lapse sweep (data-lapse policy) ─────────────────────────────────────
+// Runs once at boot and every 30 minutes: reverts lapsed plans, starts the
+// 30-day grace period, sends pre-expiry / lapse-day / final-warning emails,
+// and permanently deletes over-limit data once grace expires. runLapseSweep
+// never throws (each step is isolated), so this can't crash the server or
+// break `bun run publish`.
+runLapseSweep().catch((err: unknown) => {
+  console.error("lapse sweep boot run failed:", err instanceof Error ? err.message : err);
+});
+setInterval(() => {
+  runLapseSweep().catch((err: unknown) => {
+    console.error("lapse sweep interval run failed:", err instanceof Error ? err.message : err);
+  });
+}, 30 * 60 * 1000);
 
 // Pinned, NOT read from the environment. The published preview URL
 // (<label>.<PUBLIC_SITE_DOMAIN>) is reverse-proxied to 0.0.0.0:3000 inside the
