@@ -1,14 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
+import { useCallback, useState } from "react";
 import { getCurrentUser, type AuthUser } from "~/auth/functions";
-import { getCurrentPlan, type PlanInfo } from "~/services/plans";
-
-// ── Stripe payment links ─────────────────────────────────────────────────────
-const STRIPE_PRO_MONTHLY = "https://buy.stripe.com/bJebJ05iHdze69l3Ch9MY09";
-const STRIPE_SPRINT_PASS = "https://buy.stripe.com/5kQdR8aD152IdBN2yd9MY07";
-const STRIPE_MOMENTUM_PASS = "https://buy.stripe.com/7sY7sK4eD2UA2X90q59MY08";
-const STRIPE_COMPASS_ADDON = "https://buy.stripe.com/9B628qdPdan2apBgp39MY0a";
+import { getCurrentPlan, type PlanInfo, type PaidPlan } from "~/services/plans";
+import {
+  createCheckoutSession,
+  getStripeStatus,
+} from "~/services/stripe";
 
 // ── Server loader ────────────────────────────────────────────────────────────
 
@@ -25,12 +24,18 @@ const getBusinessName = createServerFn({ method: "GET" }).handler(async () => {
 
 export const Route = createFileRoute("/plans")({
   loader: async () => {
-    const [businessName, userResult, planInfo] = await Promise.all([
+    const [businessName, userResult, planInfo, stripeStatus] = await Promise.all([
       getBusinessName(),
       getCurrentUser(),
       getCurrentPlan(),
+      getStripeStatus(),
     ]);
-    return { businessName, user: userResult.user, planInfo };
+    return {
+      businessName,
+      user: userResult.user,
+      planInfo,
+      paymentsConfigured: stripeStatus.configured,
+    };
   },
   component: PlansPage,
 });
@@ -139,6 +144,8 @@ function PlanCard({
   ctaLabel,
   ctaDisabled,
   highlight,
+  onCtaClick,
+  paymentsNotConfigured,
 }: {
   name: string;
   price: string;
@@ -147,10 +154,12 @@ function PlanCard({
   isPro: boolean;
   isCurrentPlan: boolean;
   period?: string;
-  ctaLink: string;
+  ctaLink?: string;
   ctaLabel: string;
   ctaDisabled?: boolean;
   highlight?: boolean;
+  onCtaClick?: () => void;
+  paymentsNotConfigured?: boolean;
 }) {
   return (
     <div
@@ -236,10 +245,19 @@ function PlanCard({
           <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-center text-sm font-semibold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
             {isPro ? "You're on the Pro plan" : "Current plan"}
           </div>
+        ) : paymentsNotConfigured ? (
+          <div
+            title="Stripe keys aren't configured yet — purchases will be available soon."
+            className="block cursor-not-allowed rounded-lg border border-dashed border-gray-300 bg-gray-100 px-4 py-2.5 text-center text-sm font-medium text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400"
+          >
+            Payments not configured yet
+          </div>
         ) : (
-          <a
-            href={ctaLink}
-            className={`block rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition ${
+          <button
+            type="button"
+            onClick={onCtaClick}
+            disabled={ctaDisabled}
+            className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition ${
               ctaDisabled
                 ? "cursor-not-allowed bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500"
                 : highlight
@@ -248,7 +266,7 @@ function PlanCard({
             }`}
           >
             {ctaLabel}
-          </a>
+          </button>
         )}
       </div>
     </div>
@@ -258,8 +276,31 @@ function PlanCard({
 // ── Main page ────────────────────────────────────────────────────────────────
 
 function PlansPage() {
-  const { businessName, user, planInfo } = Route.useLoaderData();
+  const { businessName, user, planInfo, paymentsConfigured } =
+    Route.useLoaderData();
   const isPro = planInfo?.isPro ?? false;
+  const [buyingPlan, setBuyingPlan] = useState<PaidPlan | null>(null);
+  const [buyError, setBuyError] = useState<string | null>(null);
+
+  const handleBuy = useCallback(async (plan: PaidPlan) => {
+    setBuyError(null);
+    setBuyingPlan(plan);
+    try {
+      const res = await createCheckoutSession({ data: { plan } });
+      if (res.ok) {
+        window.location.href = res.url; // → Stripe hosted checkout
+        return;
+      }
+      setBuyingPlan(null);
+      setBuyError(res.error);
+    } catch {
+      setBuyingPlan(null);
+      setBuyError("Something went wrong. Please try again.");
+    }
+  }, []);
+
+  const ctaLabel = (plan: PaidPlan, base: string) =>
+    buyingPlan === plan ? "Opening checkout…" : base;
 
   const freeFeatures = [
     { name: "Basic search", included: true },
@@ -355,21 +396,31 @@ function PlansPage() {
           description="1 month of Pro access, with no auto-renewal."
           features={[...proFeatures.filter((f) => !f.name.includes("analyses")), { name: "25 Compass analyses/month (then $0.99 each)", included: true }]}
           isPro={true} isCurrentPlan={planInfo?.plan === "pro"}
-          ctaLink={STRIPE_PRO_MONTHLY} ctaLabel="Upgrade to Pro" highlight={!isPro}
+          onCtaClick={() => handleBuy("pro")} ctaLabel={ctaLabel("pro", "Upgrade to Pro")} highlight={!isPro}
+          paymentsNotConfigured={!paymentsConfigured}
         />
         <PlanCard
           name="Sprint Pass" price="$29.95" period="total · $9.98/mo"
           description="3 months of Pro access, with no auto-renewal."
           features={proFeatures} isPro={true} isCurrentPlan={planInfo?.plan === "sprint"}
-          ctaLink={STRIPE_SPRINT_PASS} ctaLabel="Get Sprint Pass"
+          onCtaClick={() => handleBuy("sprint")} ctaLabel={ctaLabel("sprint", "Get Sprint Pass")}
+          paymentsNotConfigured={!paymentsConfigured}
         />
         <PlanCard
           name="Momentum Pass" price="$44.95" period="total · $7.49/mo"
           description="6 months of Pro access, with no auto-renewal."
           features={proFeatures} isPro={true} isCurrentPlan={planInfo?.plan === "momentum"}
-          ctaLink={STRIPE_MOMENTUM_PASS} ctaLabel="Get Momentum Pass"
+          onCtaClick={() => handleBuy("momentum")} ctaLabel={ctaLabel("momentum", "Get Momentum Pass")}
+          paymentsNotConfigured={!paymentsConfigured}
         />
       </div>
+
+      {/* Buy error banner */}
+      {buyError && (
+        <div className="mx-auto mb-8 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
+          {buyError}
+        </div>
+      )}
 
       {/* Side-by-side comparison table (desktop) */}
       <div className="hidden md:block">

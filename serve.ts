@@ -12,6 +12,7 @@ import handler from "./dist/server/server.js";
 import { neon } from "@neondatabase/serverless";
 import { sql } from "./src/db";
 import { runLapseSweep } from "./src/services/lapse-sweep";
+import { handleStripeWebhook } from "./src/services/stripe-webhook";
 
 // ── DB keep-alive ────────────────────────────────────────────────────────
 // Neon's SQL-over-HTTP endpoint can go cold after a short idle (and right
@@ -212,6 +213,13 @@ for (let attempt = 1; ; attempt++) {
         // ── API routes ──────────────────────────────────────────────────
         if (pathname === "/api/extension/save-job") {
           return handleExtensionSaveJob(req);
+        }
+
+        // ── Stripe webhook (public path: /api/stripe-webhook) ────────────
+        // Signature check happens first on the RAW body; returns quickly and
+        // never crashes on malformed input. See src/services/stripe.ts.
+        if (pathname === "/api/stripe-webhook") {
+          return handleStripeWebhook(req);
         }
 
         // ── Static files ────────────────────────────────────────────────

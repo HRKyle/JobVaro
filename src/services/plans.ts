@@ -92,7 +92,7 @@ export const STRIPE_PRICE_IDS = {
   compassAddOn: "price_1U1SOID0o28wel4TW4cBSLvr",
 } as const;
 
-function isPaidPlan(plan: string): plan is PaidPlan {
+export function isPaidPlan(plan: string): plan is PaidPlan {
   return (PAID_PLANS as readonly string[]).includes(plan);
 }
 
@@ -259,33 +259,41 @@ export async function lockedAnalysisCount(userId: string): Promise<number> {
   return (rows[0] as { count: number }).count ?? 0;
 }
 
-// ── setPaidPlan ──────────────────────────────────────────────────────────────
-// Canonical way to grant a paid plan for its fixed term. Called by the future
-// Stripe fulfillment webhook; for now it's the server-side grant primitive.
+// ── grantPaidPlan / setPaidPlan ──────────────────────────────────────────────
+// grantPaidPlan is the canonical way to grant a paid plan for its fixed term.
+// setPaidPlan (the RPC surface) and the Stripe fulfillment webhook both call it,
+// so every grant path shares identical semantics: set plan + fixed expiry via
+// PLAN_DURATION_DAYS, clear the grace period and its notice level (renewal
+// restores everything — nothing is deleted during grace), and reset the
+// expiry-notice level for the new term.
+
+export async function grantPaidPlan(
+  userId: string,
+  plan: PaidPlan,
+): Promise<boolean> {
+  if (!isPaidPlan(plan)) return false;
+
+  try {
+    await sql`
+      UPDATE users
+      SET plan = ${plan},
+          plan_expires_at = now() + (${PLAN_DURATION_DAYS[plan]} * interval '1 day'),
+          expiry_notice_level = 0,
+          grace_ends_at = NULL,
+          grace_notice_level = 0
+      WHERE id = ${userId}
+    `;
+    return true;
+  } catch (err) {
+    console.error("grantPaidPlan error:", err);
+    return false;
+  }
+}
 
 export const setPaidPlan = createServerFn({ method: "POST" }).handler(
   async ({ data }): Promise<{ ok: boolean }> => {
     const { userId, plan } = data as { userId: string; plan: PaidPlan };
-    if (!isPaidPlan(plan)) return { ok: false };
-
-    try {
-      // Renewal restores everything immediately: clear the grace period and
-      // its notice level (nothing is deleted during grace), plus reset the
-      // expiry-notice level for the new term.
-      await sql`
-        UPDATE users
-        SET plan = ${plan},
-            plan_expires_at = now() + (${PLAN_DURATION_DAYS[plan]} * interval '1 day'),
-            expiry_notice_level = 0,
-            grace_ends_at = NULL,
-            grace_notice_level = 0
-        WHERE id = ${userId}
-      `;
-      return { ok: true };
-    } catch (err) {
-      console.error("setPaidPlan error:", err);
-      return { ok: false };
-    }
+    return { ok: await grantPaidPlan(userId, plan) };
   },
 );
 

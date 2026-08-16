@@ -5,11 +5,8 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { getCurrentUser, logout, type AuthUser } from "~/auth/functions";
 import { AuthForms } from "~/components/AuthForms";
 import { BookmarkletInstructions } from "~/components/BookmarkletInstructions";
-
-// ── Stripe payment links (one-time / prepaid checkouts) ──────────────────────
-const STRIPE_PRO_MONTHLY = "https://buy.stripe.com/bJebJ05iHdze69l3Ch9MY09";
-const STRIPE_SPRINT_PASS = "https://buy.stripe.com/5kQdR8aD152IdBN2yd9MY07";
-const STRIPE_MOMENTUM_PASS = "https://buy.stripe.com/7sY7sK4eD2UA2X90q59MY08";
+import type { PaidPlan } from "~/services/plans";
+import { createCheckoutSession, getStripeStatus } from "~/services/stripe";
 
 // Read the business name at request time from site.json
 const getBusinessName = createServerFn({ method: "GET" }).handler(async () => {
@@ -25,11 +22,16 @@ const getBusinessName = createServerFn({ method: "GET" }).handler(async () => {
 
 export const Route = createFileRoute("/")({
   loader: async () => {
-    const [businessName, userResult] = await Promise.all([
+    const [businessName, userResult, stripeStatus] = await Promise.all([
       getBusinessName(),
       getCurrentUser(),
+      getStripeStatus(),
     ]);
-    return { businessName, user: userResult.user };
+    return {
+      businessName,
+      user: userResult.user,
+      paymentsConfigured: stripeStatus.configured,
+    };
   },
   component: Home,
 });
@@ -240,6 +242,8 @@ function PricingCard({
   planId,
   ctaHref,
   badge,
+  onCtaClick,
+  paymentsNotConfigured = false,
 }: {
   name: string;
   price: string;
@@ -250,6 +254,8 @@ function PricingCard({
   planId?: string;
   ctaHref?: string;
   badge?: string;
+  onCtaClick?: () => void;
+  paymentsNotConfigured?: boolean;
 }) {
   const href = ctaHref ?? (planId === "signup" ? "#signup" : "/plans");
   return (
@@ -305,24 +311,48 @@ function PricingCard({
           </li>
         ))}
       </ul>
-      <a
-        href={href}
-        className={`block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
-          highlighted
-            ? "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/40"
-            : "border-2 border-gray-300 text-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500 dark:hover:text-indigo-300"
-        }`}
-      >
-        {cta}
-      </a>
+      {paymentsNotConfigured ? (
+        <div
+          title="Stripe keys aren't configured yet — purchases will be available soon."
+          className="block w-full cursor-not-allowed rounded-xl border-2 border-dashed border-gray-300 px-4 py-3 text-center text-sm font-semibold text-gray-400 dark:border-gray-700 dark:text-gray-500"
+        >
+          Payments not configured yet
+        </div>
+      ) : onCtaClick ? (
+        <button
+          type="button"
+          onClick={onCtaClick}
+          className={`block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
+            highlighted
+              ? "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/40"
+              : "border-2 border-gray-300 text-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500 dark:hover:text-indigo-300"
+          }`}
+        >
+          {cta}
+        </button>
+      ) : (
+        <a
+          href={href}
+          className={`block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
+            highlighted
+              ? "bg-gradient-to-r from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/40"
+              : "border-2 border-gray-300 text-gray-700 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500 dark:hover:text-indigo-300"
+          }`}
+        >
+          {cta}
+        </a>
+      )}
     </div>
   );
 }
 
 // ── Main Home component ──────────────────────────────────────────────────────
 function Home() {
-  const { businessName, user: initialUser } = Route.useLoaderData();
+  const { businessName, user: initialUser, paymentsConfigured } =
+    Route.useLoaderData();
   const [user, setUser] = useState<AuthUser | null>(initialUser);
+  const [buyError, setBuyError] = useState<string | null>(null);
+  const [buyingPlan, setBuyingPlan] = useState<PaidPlan | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -334,6 +364,26 @@ function Home() {
   const handleAuthSuccess = useCallback((u: AuthUser) => {
     setUser(u);
   }, []);
+
+  const handleBuy = useCallback(async (plan: PaidPlan) => {
+    setBuyError(null);
+    setBuyingPlan(plan);
+    try {
+      const res = await createCheckoutSession({ data: { plan } });
+      if (res.ok) {
+        window.location.href = res.url; // → Stripe hosted checkout
+        return;
+      }
+      setBuyingPlan(null);
+      setBuyError(res.error);
+    } catch {
+      setBuyingPlan(null);
+      setBuyError("Something went wrong. Please try again.");
+    }
+  }, []);
+
+  const buyLabel = (plan: PaidPlan, base: string) =>
+    buyingPlan === plan ? "Opening checkout…" : base;
 
   // ── Loading / redirecting state for logged-in users ──────────────────────
   if (user) {
@@ -789,8 +839,9 @@ function Home() {
                   "Company watchlist",
                   "Priority support",
                 ]}
-                cta="Upgrade to Pro"
-                ctaHref={STRIPE_PRO_MONTHLY}
+                cta={buyLabel("pro", "Upgrade to Pro")}
+                onCtaClick={() => handleBuy("pro")}
+                paymentsNotConfigured={!paymentsConfigured}
                 highlighted
               />
             </FadeInSection>
@@ -805,8 +856,9 @@ function Home() {
                   "25 Compass analyses/month (then $0.99 each)",
                   "No auto-renewal",
                 ]}
-                cta="Get Sprint Pass"
-                ctaHref={STRIPE_SPRINT_PASS}
+                cta={buyLabel("sprint", "Get Sprint Pass")}
+                onCtaClick={() => handleBuy("sprint")}
+                paymentsNotConfigured={!paymentsConfigured}
               />
             </FadeInSection>
             <FadeInSection threshold={0.1}>
@@ -820,12 +872,18 @@ function Home() {
                   "25 Compass analyses/month (then $0.99 each)",
                   "Best value · no auto-renewal",
                 ]}
-                cta="Get Momentum Pass"
-                ctaHref={STRIPE_MOMENTUM_PASS}
+                cta={buyLabel("momentum", "Get Momentum Pass")}
+                onCtaClick={() => handleBuy("momentum")}
+                paymentsNotConfigured={!paymentsConfigured}
                 badge="Best Value"
               />
             </FadeInSection>
           </div>
+          {buyError && (
+            <div className="mx-auto mt-8 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
+              {buyError}
+            </div>
+          )}
           <p className="mt-10 text-center">
             <a
               href="/plans"
