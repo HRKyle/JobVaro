@@ -14,6 +14,35 @@ import { sql } from "./src/db";
 import { runLapseSweep } from "./src/services/lapse-sweep";
 import { handleStripeWebhook } from "./src/services/stripe-webhook";
 
+// ── Explicit .env load ───────────────────────────────────────────────────
+// Bun auto-loads .env from the process CWD, which isn't guaranteed when the
+// platform starts this server. Load the repo's .env by absolute path so the
+// Stripe keys (and any other vars) are always available regardless of how or
+// from where the process is launched. Runs before any request can be handled;
+// secret consumers (stripe.ts) read process.env lazily at runtime.
+import { readFileSync } from "node:fs";
+try {
+  const envRaw = readFileSync(new URL("./.env", import.meta.url), "utf8");
+  for (const line of envRaw.split("\n")) {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (!m || process.env[m[1]] !== undefined) continue;
+    let v = m[2];
+    if (
+      (v.startsWith('"') && v.endsWith('"')) ||
+      (v.startsWith("'") && v.endsWith("'"))
+    ) {
+      v = v.slice(1, -1);
+    }
+    process.env[m[1]] = v;
+  }
+} catch (err) {
+  console.error("[boot] .env load failed:", err instanceof Error ? err.message : err);
+}
+// Boot diagnostic: confirm whether Stripe keys are visible to this process.
+console.log(
+  `[boot] cwd=${process.cwd()} secret=${!!process.env.STRIPE_SECRET_KEY} webhook=${!!process.env.STRIPE_WEBHOOK_SECRET}`,
+);
+
 // ── DB keep-alive ────────────────────────────────────────────────────────
 // Neon's SQL-over-HTTP endpoint can go cold after a short idle (and right
 // after a `bun run publish` restart); the first query then aborts with a
