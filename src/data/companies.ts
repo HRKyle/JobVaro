@@ -5,7 +5,7 @@
 export interface CompanyEntry {
   name: string;
   slug: string;
-  ats: "greenhouse" | "lever" | "none";
+  ats: "greenhouse" | "lever" | "smartrecruiters" | "ashby" | "none";
 }
 
 export const COMPANIES: CompanyEntry[] = [
@@ -228,6 +228,38 @@ export const COMPANIES: CompanyEntry[] = [
   { name: "Tome", slug: "tome", ats: "lever" },
   { name: "Vouch", slug: "vouch", ats: "lever" },
   { name: "Writer", slug: "writer", ats: "lever" },
+  // ── SmartRecruiters (verified live public feed, IDs verified non-empty via curl) ──
+  { name: "Sodexo", slug: "sodexo", ats: "smartrecruiters" },
+  { name: "Continental", slug: "continental", ats: "smartrecruiters" },
+  { name: "Kimberly-Clark", slug: "kimberlyclark", ats: "smartrecruiters" },
+  { name: "Delivery Hero", slug: "deliveryhero", ats: "smartrecruiters" },
+  { name: "ASOS", slug: "asos", ats: "smartrecruiters" },
+  { name: "Accor", slug: "accor", ats: "smartrecruiters" },
+  { name: "Wayfair", slug: "wayfair", ats: "smartrecruiters" },
+  { name: "Domino's", slug: "dominos", ats: "smartrecruiters" },
+  { name: "Swiggy", slug: "swiggy", ats: "smartrecruiters" },
+  { name: "Wise", slug: "wise", ats: "smartrecruiters" },
+  { name: "Thales", slug: "thales", ats: "smartrecruiters" },
+  { name: "GEICO", slug: "geico", ats: "smartrecruiters" },
+  { name: "Entain", slug: "entain", ats: "smartrecruiters" },
+  { name: "Primark", slug: "primark", ats: "smartrecruiters" },
+  { name: "Caffè Nero", slug: "caffenero", ats: "smartrecruiters" },
+  { name: "Eurofins", slug: "eurofins", ats: "smartrecruiters" },
+  { name: "Colliers", slug: "colliers", ats: "smartrecruiters" },
+  // ── Ashby (verified live public feed, IDs verified non-empty via curl) ──
+  { name: "Perplexity", slug: "perplexity", ats: "ashby" },
+  { name: "Character.AI", slug: "character", ats: "ashby" },
+  { name: "Cognition (Devin)", slug: "cognition", ats: "ashby" },
+  { name: "Semgrep", slug: "semgrep", ats: "ashby" },
+  { name: "Resend", slug: "resend", ats: "ashby" },
+  { name: "Cursor (Anysphere)", slug: "cursor", ats: "ashby" },
+  { name: "Weaviate", slug: "weaviate", ats: "ashby" },
+  { name: "Stytch", slug: "stytch", ats: "ashby" },
+  { name: "WorkOS", slug: "workos", ats: "ashby" },
+  { name: "Browserbase", slug: "browserbase", ats: "ashby" },
+  { name: "Neon", slug: "neon", ats: "ashby" },
+  { name: "Dune", slug: "dune", ats: "ashby" },
+  { name: "Gumloop", slug: "gumloop", ats: "ashby" },
   // ── JobVaro showcase ──
   { name: "HRKyle Services", slug: "hrkyle-services", ats: "none" },
 ];

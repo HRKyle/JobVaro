@@ -109,6 +109,107 @@ async function fetchLever(company: string): Promise<ATSJob[]> {
   }));
 }
 
+// ── SmartRecruiters fetcher ──────────────────────────────────────────────────
+
+async function fetchSmartRecruiters(companyIdentifier: string): Promise<ATSJob[]> {
+  const url = `https://api.smartrecruiters.com/v1/companies/${companyIdentifier}/postings?limit=100`;
+  const resp = await fetchWithTimeout(url);
+  if (!resp.ok) return [];
+  const data = (await resp.json()) as {
+    content?: Array<{
+      id: string;
+      name?: string;
+      refNumber?: string;
+      releasedDate?: string;
+      company?: { identifier?: string; name?: string };
+      location?: {
+        city?: string;
+        region?: string;
+        country?: string;
+        remote?: boolean;
+        fullLocation?: string;
+      };
+      function?: { label?: string };
+    }>;
+  };
+  if (!data.content || !Array.isArray(data.content)) return [];
+
+  return data.content.map((job) => {
+    const loc = job.location ?? {};
+    const parts = [loc.city, loc.region, loc.country].filter(Boolean);
+    const location = loc.remote
+      ? "Remote"
+      : loc.fullLocation
+        ? loc.fullLocation
+        : parts.length > 0
+          ? parts.join(", ")
+          : "Remote";
+    const companyIdentifierName = job.company?.identifier ?? companyIdentifier;
+    return {
+      external_id: `sr:${companyIdentifier}:${job.id}`,
+      title: job.name ?? "Untitled",
+      company: job.company?.name ?? companyIdentifier,
+      company_slug: companyIdentifier,
+      location,
+      description: "",
+      url: `https://jobs.smartrecruiters.com/${companyIdentifierName}/${job.id}`,
+      salary: "",
+      source: "smartrecruiters",
+      posted_at: job.releasedDate ?? null,
+    };
+  });
+}
+
+// ── Ashby fetcher ────────────────────────────────────────────────────────────
+
+async function fetchAshby(company: string, companyName: string): Promise<ATSJob[]> {
+  const url = `https://api.ashbyhq.com/posting-api/job-board/${company}`;
+  const resp = await fetchWithTimeout(url);
+  if (!resp.ok) return [];
+  const data = (await resp.json()) as {
+    jobs?: Array<{
+      id: string;
+      title?: string;
+      location?: string;
+      department?: string;
+      postedAt?: string | null;
+      applyUrl?: string;
+      jobUrl?: string;
+      address?: {
+        postalAddress?: {
+          addressLocality?: string;
+          addressRegion?: string;
+          addressCountry?: string;
+        };
+      };
+    }>;
+  };
+  if (!data.jobs || !Array.isArray(data.jobs)) return [];
+
+  return data.jobs.map((job) => {
+    const addr = job.address?.postalAddress;
+    const parts = [addr?.addressLocality, addr?.addressRegion, addr?.addressCountry].filter(Boolean);
+    const location =
+      job.location && !/^remote$/i.test(job.location.trim())
+        ? job.location
+        : parts.length > 0
+          ? parts.join(", ")
+          : (job.location ?? "Remote");
+    return {
+      external_id: `ashby:${company}:${job.id}`,
+      title: job.title ?? "Untitled",
+      company: companyName || company,
+      company_slug: company,
+      location,
+      description: "",
+      url: job.applyUrl ?? job.jobUrl ?? `https://jobs.ashbyhq.com/${company}/${job.id}`,
+      salary: "",
+      source: "ashby",
+      posted_at: job.postedAt ?? null,
+    };
+  });
+}
+
 // ── fetchCompanyJobs ─────────────────────────────────────────────────────────
 
 async function fetchCompanyJobsImpl(companySlug: string, companyName: string): Promise<ATSJob[]> {
@@ -121,6 +222,12 @@ async function fetchCompanyJobsImpl(companySlug: string, companyName: string): P
     }
     if (company.ats === "lever") {
       return await fetchLever(companySlug);
+    }
+    if (company.ats === "smartrecruiters") {
+      return await fetchSmartRecruiters(companySlug);
+    }
+    if (company.ats === "ashby") {
+      return await fetchAshby(companySlug, companyName);
     }
   } catch (err) {
     console.error(`Error fetching ${companySlug}:`, err);
