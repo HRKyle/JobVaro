@@ -273,7 +273,7 @@ function RootComponent() {
             <a href="/" aria-label="JobVaro home">
               <div className="flex items-center gap-2">
                 <Logo name={businessName} />
-                <span className="hidden text-[10px] font-medium text-gray-400 sm:inline">by HRKyle</span>
+                <span className="text-[10px] font-medium text-gray-400 sm:inline">by HRKyle</span>
               </div>
             </a>
 
@@ -330,7 +330,10 @@ function RootComponent() {
               />
               <div className="animate-slide-in-right absolute inset-y-0 right-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-l border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-                  <Logo name={businessName} />
+                  <div className="flex items-center gap-2">
+                    <Logo name={businessName} />
+                    <span className="text-[10px] font-medium text-gray-400">by HRKyle</span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setMobileMenuOpen(false)}
