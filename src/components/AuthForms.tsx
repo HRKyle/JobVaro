@@ -253,6 +253,14 @@ function LoginForm({ onAuthSuccess }: AuthFormsProps) {
         minLength={8}
         iconPath="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
       />
+      <div className="flex justify-end">
+        <a
+          href="/forgot-password"
+          className="text-sm font-semibold text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+        >
+          Forgot your password?
+        </a>
+      </div>
       <SubmitButton loading={loading} loadingLabel="Logging in…" label="Log in" />
     </form>
   );

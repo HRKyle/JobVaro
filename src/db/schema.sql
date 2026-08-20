@@ -148,3 +148,19 @@ CREATE INDEX IF NOT EXISTS idx_applications_status    ON applications(status);
 CREATE INDEX IF NOT EXISTS idx_app_events_app_id      ON application_events(application_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_token          ON sessions(token);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id        ON sessions(user_id);
+
+-- Password reset tokens: single-use, 60-minute expiry for the self-serve
+-- "Forgot your password?" flow. The token is stored hashed (SHA-256) at rest —
+-- the raw token is only ever sent to the user in their reset email and never
+-- logged or stored in plaintext. used_at marks a token consumed (single-use).
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash VARCHAR(255) UNIQUE NOT NULL, -- SHA-256 of the raw reset token
+  email      VARCHAR(255) NOT NULL,        -- account the reset was requested for
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at    TIMESTAMPTZ,                  -- NULL until the token is consumed
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_reset_tokens_user    ON password_reset_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_reset_tokens_expires ON password_reset_tokens(expires_at);
