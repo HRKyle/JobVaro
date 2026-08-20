@@ -393,22 +393,22 @@ function PlansPage() {
         />
         <PlanCard
           name="Pro" price="$14.95" period="one-time · 1 month"
-          description="1 month of Pro access, with no auto-renewal."
+          description="One-time purchase · 1 month of Pro access. It does not auto-renew — renew manually to keep going."
           features={[...proFeatures.filter((f) => !f.name.includes("analyses")), { name: "25 Compass analyses/month (then $0.99 each)", included: true }]}
           isPro={true} isCurrentPlan={planInfo?.plan === "pro"}
           onCtaClick={() => handleBuy("pro")} ctaLabel={ctaLabel("pro", "Upgrade to Pro")} highlight={!isPro}
           paymentsNotConfigured={!paymentsConfigured}
         />
         <PlanCard
-          name="Sprint Pass" price="$29.95" period="total · $9.98/mo"
-          description="3 months of Pro access, with no auto-renewal."
+          name="Sprint Pass" price="$29.95" period="one-time · 3 months"
+          description="One-time purchase · 3 months of Pro access. It does not auto-renew — renew manually to keep going."
           features={proFeatures} isPro={true} isCurrentPlan={planInfo?.plan === "sprint"}
           onCtaClick={() => handleBuy("sprint")} ctaLabel={ctaLabel("sprint", "Get Sprint Pass")}
           paymentsNotConfigured={!paymentsConfigured}
         />
         <PlanCard
-          name="Momentum Pass" price="$44.95" period="total · $7.49/mo"
-          description="6 months of Pro access, with no auto-renewal."
+          name="Momentum Pass" price="$44.95" period="one-time · 6 months"
+          description="One-time purchase · 6 months of Pro access. It does not auto-renew — renew manually to keep going."
           features={proFeatures} isPro={true} isCurrentPlan={planInfo?.plan === "momentum"}
           onCtaClick={() => handleBuy("momentum")} ctaLabel={ctaLabel("momentum", "Get Momentum Pass")}
           paymentsNotConfigured={!paymentsConfigured}
@@ -486,9 +486,11 @@ function PlansPage() {
       {/* FAQ / reassurance */}
       <div className="mt-12 text-center">
         <p className="text-sm text-gray-400 dark:text-gray-500">
-          No plan auto-renews — every paid plan is a one-time purchase for a
-          fixed term. You can upgrade, downgrade, or cancel at any time. No
-          long-term contracts.
+          Every paid plan is a one-time purchase for a fixed term with a
+          specific end date. Neither it nor any card is ever billed again — the
+          plan does not auto-renew, ever. To keep Pro beyond that date, you must
+          actively renew (buy another pass) before it lapses. No long-term
+          contracts, no recurring charges.
         </p>
       </div>
     </main>

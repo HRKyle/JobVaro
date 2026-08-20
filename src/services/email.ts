@@ -163,7 +163,8 @@ export async function sendPreExpiryEmail({
   const html = emailHtml(
     `<p>Hi there,</p>
      <p>${copy}</p>
-     <p>Your <strong>${planName}</strong> access ends on <strong>${formatDate(expiresAt)}</strong> (${daysLeft} day${daysLeft === 1 ? "" : "s"} remaining). Renew before it ends to keep unlimited tracking and Compass.</p>`,
+     <p>Your <strong>${planName}</strong> is a fixed-term, one-time purchase and will <strong>not renew automatically</strong> — nothing will ever be charged again.</p>
+     <p>Your access ends on <strong>${formatDate(expiresAt)}</strong> (${daysLeft} day${daysLeft === 1 ? "" : "s"} remaining). To keep unlimited tracking and Compass, you must <strong>actively renew before that date</strong>.</p>`,
   );
   await sendEmail({ to, subject, html });
   try {
@@ -196,8 +197,8 @@ export async function sendLapseEmail({
   const subject = `Your ${planName} has ended — renew within 30 days to keep your data`;
   const html = emailHtml(
     `<p>Hi there,</p>
-     <p>Your <strong>${planName}</strong> has ended and you're now on the Free plan. Applications or analyses beyond the free limits are <strong>locked</strong> — they're safe for now, but hidden.</p>
-     <p>Renew within 30 days (by <strong>${formatDate(graceEndsAt)}</strong>) to restore everything instantly. After that date, locked data is permanently deleted.</p>`,
+     <p>Your <strong>${planName}</strong> was a fixed-term, one-time purchase and did not renew automatically — nothing was charged again. It has now ended and you're on the Free plan. Applications or analyses beyond the free limits are <strong>locked</strong> — they're safe for now, but hidden.</p>
+     <p>You can <strong>actively renew</strong> within 30 days (by <strong>${formatDate(graceEndsAt)}</strong>) to restore everything instantly. After that date, locked data is permanently deleted.</p>`,
   );
   await sendEmail({ to, subject, html });
   try {
@@ -231,7 +232,7 @@ export async function sendFinalWarningEmail({
   const html = emailHtml(
     `<p>Hi there,</p>
      <p><strong>7 days left.</strong> Your locked data will be <strong>permanently deleted</strong> on <strong>${formatDate(deletionDate)}</strong>.</p>
-     <p>Renew now to keep everything — once deleted, it can't be recovered.</p>`,
+     <p>Remember: your plan was a fixed-term purchase and did not auto-renew. It will not be charged again — you must <strong>actively renew now</strong>, within the grace window, to keep your data. Once deleted, it can't be recovered.</p>`,
   );
   await sendEmail({ to, subject, html });
   try {

@@ -227,11 +227,12 @@ function UpgradeSuccessPage() {
           Welcome to {planName}!
         </h1>
         <p className="mt-3 max-w-md text-lg text-gray-500 dark:text-gray-400">
-          Your {planName} access is active and runs through{" "}
+          Your {planName} pass is active until{" "}
           <span className="font-semibold text-gray-700 dark:text-gray-200">
             {expiresAt}
-          </span>{" "}
-          — a one-time purchase with no auto-renewal. Here's what you've
+          </span>
+          . It does not renew automatically — renew before that date to keep
+          your features. Nothing will be charged again. Here's what you've
           unlocked:
         </p>
         <ul className="mt-8 w-full max-w-sm space-y-3 text-left">

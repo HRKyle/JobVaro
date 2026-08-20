@@ -68,15 +68,17 @@ function GraceBanner({ grace }: { grace: GraceNotice }) {
         </span>
         <div className="min-w-0">
           <p className="text-sm font-medium leading-relaxed text-rose-900 dark:text-rose-100">
-            Your paid plan access has ended.{" "}
+            Your paid plan was a fixed-term purchase and did not renew
+            automatically — access has ended.{" "}
             <span className="font-semibold">
               {lockedCountCopy(grace.lockedApplications, grace.lockedAnalyses)}
             </span>
-            . Renew within 30 days to restore everything — otherwise they'll be
-            permanently deleted on {deletionDate}.
+            . Nothing is charged again; you must actively renew to restore
+            everything within 30 days — otherwise they'll be permanently
+            deleted on {deletionDate}.
           </p>
           <p className="mt-1 text-xs font-medium text-rose-700 dark:text-rose-300">
-            Renew before {deletionDate} to keep your data
+            Actively renew before {deletionDate} to keep your data
           </p>
         </div>
       </div>
@@ -155,7 +157,8 @@ export function ExpiryNoticeBanner({
           </p>
           <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300">
             Your access ends on {expiryDate} · {notice.daysLeft}{" "}
-            {notice.daysLeft === 1 ? "day" : "days"} remaining
+            {notice.daysLeft === 1 ? "day" : "days"} remaining · will not renew
+            automatically — renew to keep Pro
           </p>
         </div>
       </div>

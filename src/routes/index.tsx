@@ -833,7 +833,7 @@ function Home() {
                 price="$14.95"
                 period="one-time · 1 month"
                 features={[
-                  "1 month of Pro access, no auto-renewal",
+                  "1 month of Pro access · renew manually, no auto-renewal",
                   "Unlimited tracked applications",
                   "25 Compass analyses/month (then $0.99 each)",
                   "Company watchlist",
@@ -854,7 +854,7 @@ function Home() {
                   "3 months of Pro access",
                   "Unlimited tracked applications",
                   "25 Compass analyses/month (then $0.99 each)",
-                  "No auto-renewal",
+                  "Renew manually · no auto-renewal",
                 ]}
                 cta={buyLabel("sprint", "Get Sprint Pass")}
                 onCtaClick={() => handleBuy("sprint")}
@@ -870,7 +870,7 @@ function Home() {
                   "6 months of Pro access",
                   "Unlimited tracked applications",
                   "25 Compass analyses/month (then $0.99 each)",
-                  "Best value · no auto-renewal",
+                  "Best value · renew manually, no auto-renewal",
                 ]}
                 cta={buyLabel("momentum", "Get Momentum Pass")}
                 onCtaClick={() => handleBuy("momentum")}
