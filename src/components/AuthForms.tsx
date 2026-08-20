@@ -1,6 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { signUp, login, type AuthUser } from "~/auth/functions";
 
+// After a successful login or signup, route the user to the Welcome/Dashboard
+// page. This is the single, immediate post-auth destination (only fires on an
+// actual auth action, never on manual navigation). A hard navigation guarantees
+// a fresh server-side render so the nav bar and greeting reflect the new session.
+function goToWelcome() {
+  if (typeof window !== "undefined") {
+    window.location.href = "/welcome";
+  }
+}
+
 // ── Shared props ──────────────────────────────────────────────────────────
 
 interface AuthFormsProps {
@@ -127,6 +137,7 @@ function SignUpForm({ onAuthSuccess }: AuthFormsProps) {
       const result = await signUp({ data: { email, password, name: name.trim() } });
       if (result.success) {
         onAuthSuccess(result.user);
+        goToWelcome();
       } else {
         setError(result.error);
       }
@@ -205,6 +216,7 @@ function LoginForm({ onAuthSuccess }: AuthFormsProps) {
       const result = await login({ data: { email, password } });
       if (result.success) {
         onAuthSuccess(result.user);
+        goToWelcome();
       } else {
         setError(result.error);
       }
