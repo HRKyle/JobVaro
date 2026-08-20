@@ -100,7 +100,11 @@ function CompanyCard({
               ? "Greenhouse"
               : company.ats === "lever"
                 ? "Lever"
-                : ""}
+                : company.ats === "smartrecruiters"
+                  ? "SmartRecruiters"
+                  : company.ats === "ashby"
+                    ? "Ashby"
+                    : ""}
           </span>
         </div>
       </div>
