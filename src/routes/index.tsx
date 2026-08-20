@@ -587,7 +587,7 @@ function Home() {
                 index={4}
                 emoji="🧭"
                 title="JobVaro Compass"
-                description="AI-powered résumé-job matching — know your odds before you apply. Get a recruiter's honest take and a prioritized action plan."
+                description="Know your real odds before you apply — scored the way real AI screening actually works."
               />
             </FadeInSection>
           </div>
@@ -604,7 +604,7 @@ function Home() {
             {/* Left: pitch + CTA */}
             <FadeInSection>
               <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 text-sm font-semibold text-teal-700 dark:border-teal-900 dark:bg-teal-950/60 dark:text-teal-300">
-                🧭 JobVaro Compass
+                🛡️ Proprietary HRKyle methodology
               </span>
               <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-gray-100">
                 Know your odds{" "}

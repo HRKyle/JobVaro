@@ -422,6 +422,12 @@ function PlansPage() {
         </div>
       )}
 
+      {/* Trust footnote under the pricing cards */}
+      <p className="mx-auto mb-10 max-w-2xl text-center text-sm text-gray-500 dark:text-gray-400">
+        Compass analyses use JobVaro&apos;s proprietary HRKyle methodology — an
+        honest, recruiter-grade read of your odds, never inflated.
+      </p>
+
       {/* Side-by-side comparison table (desktop) */}
       <div className="hidden md:block">
         <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-gray-100">

@@ -90,13 +90,29 @@ function CompassWorkspace({ user: _user }: { user: AuthUser }) {
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-          JobVaro Compass
-        </h1>
-        <p className="mt-1 text-gray-500 dark:text-gray-400">
-          AI-powered résumé–job matching. Get your fit score, recruiter
-          perspective, and an actionable plan.
+        <p className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/80 px-3 py-1 text-xs font-semibold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
+          🧭 JobVaro Compass
         </p>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+          Your real odds, before you apply
+        </h1>
+        <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5 dark:border-indigo-900/60 dark:bg-indigo-950/30">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
+            Why you can trust the score
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+            Compass is built on JobVaro&apos;s proprietary scoring methodology,
+            developed from HRKyle Services&apos; everyday work hiring and
+            screening real candidates in the field. It doesn&apos;t guess — it
+            weighs the same factors AI-based and automated screening tools
+            actually look for: required qualifications, relevant experience,
+            skills, résumé evidence, and recruiter/ATS readiness. It separates
+            must-haves from wish-list items, gives transferable skills fair
+            credit, and flags genuine gaps instead of hiding them. And it never
+            inflates: when a role isn&apos;t a strong fit, Compass says so
+            plainly — and shows you exactly how to close the distance.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(340px,0.85fr)_minmax(0,1.35fr)]">
@@ -219,7 +235,7 @@ function CompassWorkspace({ user: _user }: { user: AuthUser }) {
                 Upgrade to Pro
               </a>
               <p className="mt-3 text-xs text-gray-400">
-                $12/month · cancel anytime
+                One-time purchase · no auto-renewal
               </p>
             </div>
           ) : (

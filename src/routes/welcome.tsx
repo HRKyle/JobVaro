@@ -99,8 +99,8 @@ function WelcomePage() {
       <div className="bg-grid-slate pointer-events-none absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_at_top,black_20%,transparent_70%)]" />
 
       <div className="mx-auto max-w-5xl">
-        {/* ── Header / greeting ── */}
-        <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        {/* ── Greeting + plan status ── */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/80 px-3 py-1 text-xs font-semibold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
               Welcome to JobVaro
@@ -113,8 +113,8 @@ function WelcomePage() {
               👋
             </h1>
             <p className="mt-2 max-w-xl text-gray-600 dark:text-gray-400">
-              Here's everything you can do with JobVaro. Pick a feature to jump
-              straight in.
+              Your job search command center — Find, Match, Apply, and Track.
+              Here's everything you can do with JobVaro.
             </p>
           </div>
 
@@ -137,6 +137,77 @@ function WelcomePage() {
               </a>
             )}
           </div>
+        </div>
+
+        {/* ── Compass featured hero ── */}
+        <div className="relative mb-8 overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-8 shadow-lg shadow-indigo-500/10 dark:border-indigo-800 dark:from-indigo-950/50 dark:via-gray-950 dark:to-violet-950/30 sm:p-10">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 opacity-10 blur-3xl" />
+          <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/90 px-3 py-1 text-xs font-semibold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
+            🛡️ Proprietary HRKyle methodology
+          </span>
+          <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-gray-50 sm:text-4xl">
+            Know your real odds{" "}
+            <span className="bg-gradient-to-r from-indigo-600 via-violet-500 to-purple-500 bg-clip-text text-transparent">
+              before you apply.
+            </span>
+          </h2>
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-600 dark:text-gray-400">
+            Compass scores your résumé against any role using JobVaro&apos;s own
+            recruitment-built methodology — the same factors real AI screening
+            systems weigh — and tells you honestly whether it&apos;s worth
+            applying, and how to improve. That&apos;s the headline feature here;
+            the rest below keeps your search organized around it.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <a
+              href="/compass"
+              className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 px-7 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/30 transition hover:shadow-lg hover:brightness-110 active:scale-95"
+            >
+              Check your fit — free
+            </a>
+            <a
+              href="/compass"
+              className="inline-flex items-center justify-center gap-1 text-sm font-semibold text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400"
+            >
+              See how the score works
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        {/* ── One-stop-shop journey ── */}
+        <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {[
+            { step: "Find", desc: "Search & community jobs" },
+            { step: "Match", desc: "Compass score", headline: true },
+            { step: "Apply", desc: "Quick Add any URL" },
+            { step: "Track", desc: "Your pipeline" },
+            { step: "Community", desc: "Share & discover" },
+          ].map((s) => (
+            <div
+              key={s.step}
+              className={`rounded-xl border px-4 py-3 text-center ${
+                s.headline
+                  ? "border-indigo-300 bg-indigo-50 dark:border-indigo-700 dark:bg-indigo-950/50"
+                  : "border-gray-200 bg-white/70 dark:border-gray-800 dark:bg-gray-900/60"
+              }`}
+            >
+              <p
+                className={`text-sm font-bold ${
+                  s.headline
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent"
+                    : "text-gray-800 dark:text-gray-100"
+                }`}
+              >
+                {s.step}
+              </p>
+              <p className="mt-0.5 text-[11px] leading-tight text-gray-500 dark:text-gray-400">
+                {s.desc}
+              </p>
+            </div>
+          ))}
         </div>
 
         {/* ── Feature grid ── */}
