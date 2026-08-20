@@ -5,8 +5,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { searchCompanies as searchCompanyList, getCompanyBySlug, type CompanyEntry } from "~/data/companies";
+import { fetchAndUpsertCompanyJobs } from "~/services/ats-fetcher";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Slugify a free-text company name, e.g. "HRKyle Services" -> "hrkyle-services". */
+export function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/^\.+|\.+$/g, "");
+}
 
 async function getUserId(): Promise<string | null> {
   try {
@@ -50,28 +61,60 @@ export const searchCompanies = createServerFn({ method: "GET" }).handler(
 
 // ── followCompany ────────────────────────────────────────────────────────────
 
+export interface FollowResult {
+  success: boolean;
+  error?: string;
+  /** Number of jobs fetched & stored for this company right after following (0 for custom/no-ATS). */
+  jobsFetched?: number;
+}
+
+/**
+ * Follow a company. Accepts either a curated slug or an arbitrary free-text
+ * company name (Goal B). If the slug/name matches a curated entry we keep its
+ * real slug + ATS feed; otherwise we insert it as a custom company with no ATS
+ * (label: Manual). For companies with a known ATS feed, we immediately fetch
+ * their jobs into jobs_feed (fetch-on-follow) and report the count.
+ */
 export const followCompany = createServerFn({ method: "POST" }).handler(
-  async ({ data }): Promise<{ success: boolean; error?: string }> => {
+  async ({ data }): Promise<FollowResult> => {
     const userId = await getUserId();
     if (!userId) return { success: false, error: "You must be logged in." };
 
-    const { companySlug } = data as { companySlug: string };
-    if (!companySlug) return { success: false, error: "Company slug is required." };
+    const { companySlug, companyName } = data as { companySlug?: string; companyName?: string };
+    const name = companyName?.trim();
+    const slug = companySlug?.trim() || (name ? slugify(name) : "");
+    if (!name && !companySlug) return { success: false, error: "Company name is required." };
 
-    const company = getCompanyBySlug(companySlug);
-    if (!company) return { success: false, error: "Company not found." };
+    // Resolve to a real curated entry when possible; otherwise treat as custom.
+    const resolvedName = name || slug;
+    const curated = getCompanyBySlug(slug);
+    const finalSlug = curated?.slug ?? slug;
+    const finalName = curated?.name ?? resolvedName;
+    const ats = curated?.ats ?? "none";
 
     try {
       await sql`
         INSERT INTO company_watchlist (user_id, company_slug, company_name)
-        VALUES (${userId}, ${company.slug}, ${company.name})
+        VALUES (${userId}, ${finalSlug}, ${finalName})
         ON CONFLICT (user_id, company_slug) DO NOTHING
       `;
-      return { success: true };
     } catch (err) {
       console.error("followCompany error:", err);
       return { success: false, error: "Failed to follow company." };
     }
+
+    // Fetch-on-follow: for companies with a known ATS feed, pull jobs immediately.
+    // Degrades gracefully — the follow itself always succeeds even if the fetch fails.
+    let jobsFetched = 0;
+    if (ats !== "none") {
+      try {
+        jobsFetched = await fetchAndUpsertCompanyJobs(finalSlug, finalName);
+      } catch (err) {
+        console.error(`followCompany: background fetch for ${finalSlug} failed:`, err);
+      }
+    }
+
+    return { success: true, jobsFetched };
   },
 );
 
