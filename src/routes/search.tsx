@@ -271,9 +271,11 @@ function SearchPage() {
   const [filter, setFilter] = useState<"all" | "watchlist">("all");
   const [results, setResults] = useState<SearchResponse>(initialResults);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedSearchText = useRef("");
+  const refreshRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch results
   const fetchResults = useCallback(
@@ -298,6 +300,15 @@ function SearchPage() {
           },
         });
         setResults(res);
+        setRefreshing(!!res.refreshing);
+        // If a background feed refresh was just kicked off, refetch shortly after
+        // it completes so newly pulled jobs appear and the indicator clears.
+        if (res.refreshing) {
+          if (refreshRetryRef.current) clearTimeout(refreshRetryRef.current);
+          refreshRetryRef.current = setTimeout(() => {
+            fetchResults(params);
+          }, 4000);
+        }
       } catch {
         // Keep existing results on error
       } finally {
@@ -306,6 +317,13 @@ function SearchPage() {
     },
     [],
   );
+
+  // Clear any pending refresh-retry timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (refreshRetryRef.current) clearTimeout(refreshRetryRef.current);
+    };
+  }, []);
 
   // Debounced search
   useEffect(() => {
@@ -508,6 +526,17 @@ function SearchPage() {
               </svg>
               {results.total} job{results.total !== 1 ? "s" : ""}
             </span>
+
+            {/* Refreshing indicator (non-blocking background feed refresh) */}
+            {refreshing && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-950 dark:text-sky-400">
+                <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Refreshing…
+              </span>
+            )}
           </div>
         </div>
       </div>

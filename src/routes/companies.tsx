@@ -57,18 +57,18 @@ function CompanyCard({
 }: {
   company: CompanyEntry;
   isFollowed: boolean;
-  onToggle: (slug: string, follow: boolean) => void;
+  onToggle: (company: CompanyEntry, follow: boolean) => void;
 }) {
   const [loading, setLoading] = useState(false);
 
   const handleToggle = useCallback(async () => {
     setLoading(true);
     try {
-      await onToggle(company.slug, !isFollowed);
+      await onToggle(company, !isFollowed);
     } finally {
       setLoading(false);
     }
-  }, [company.slug, isFollowed, onToggle]);
+  }, [company, isFollowed, onToggle]);
 
   return (
     <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
@@ -208,20 +208,26 @@ function CompaniesPage() {
 
   // Toggle follow/unfollow
   const handleToggle = useCallback(
-    async (slug: string, shouldFollow: boolean) => {
+    async (company: CompanyEntry, shouldFollow: boolean) => {
       if (shouldFollow) {
-        const result = await followCompany({ data: { companySlug: slug } });
+        const result = await followCompany({
+          data: { companyName: company.name, companySlug: company.slug },
+        });
         if (result.success) {
-          setFollowed((prev) => [...prev, slug]);
-          toast("Company added to watchlist");
+          setFollowed((prev) => [...prev, company.slug]);
+          toast(
+            result.jobsFetched
+              ? `Added · Fetching ${result.jobsFetched} job${result.jobsFetched !== 1 ? "s" : ""}`
+              : "Company added to watchlist",
+          );
           // Refresh watchlist
           const wl = await getWatchlist();
           setWatchlist(wl.companies);
         }
       } else {
-        const result = await unfollowCompany({ data: { companySlug: slug } });
+        const result = await unfollowCompany({ data: { companySlug: company.slug } });
         if (result.success) {
-          setFollowed((prev) => prev.filter((s) => s !== slug));
+          setFollowed((prev) => prev.filter((s) => s !== company.slug));
           toast("Company removed from watchlist", "info");
           const wl = await getWatchlist();
           setWatchlist(wl.companies);
@@ -231,14 +237,51 @@ function CompaniesPage() {
     [],
   );
 
+  // Follow an arbitrary free-text company name (no curated match needed).
+  const handleFollowByName = useCallback(
+    async (name: string) => {
+      setLoading(true);
+      try {
+        const slug = name
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+        const result = await followCompany({ data: { companyName: name, companySlug: slug } });
+        if (result.success) {
+          setFollowed((prev) => (prev.includes(slug) ? prev : [...prev, slug]));
+          toast(
+            result.jobsFetched
+              ? `Added · Fetching ${result.jobsFetched} job${result.jobsFetched !== 1 ? "s" : ""}`
+              : "Company added to watchlist",
+          );
+          setShowDropdown(false);
+          setSearchText("");
+          const wl = await getWatchlist();
+          setWatchlist(wl.companies);
+          const res = await searchCompanies({ data: { query: "" } });
+          setResults([]);
+          setFollowed(res.followed);
+        } else {
+          toast(result.error ?? "Failed to add company", "error");
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
   const handleSelect = useCallback(
     async (company: CompanyEntry) => {
       const isFollowed = followed.includes(company.slug);
-      let result: { success: boolean; error?: string };
+      let result: { success: boolean; error?: string; jobsFetched?: number };
       if (isFollowed) {
         result = await unfollowCompany({ data: { companySlug: company.slug } });
       } else {
-        result = await followCompany({ data: { companySlug: company.slug } });
+        result = await followCompany({
+          data: { companyName: company.name, companySlug: company.slug },
+        });
       }
       if (!result.success) {
         // Server rejected the action — silently skip the optimistic update
@@ -254,6 +297,9 @@ function CompaniesPage() {
         setFollowed((prev) => prev.filter((s) => s !== company.slug));
       } else {
         setFollowed((prev) => [...prev, company.slug]);
+        if (result.jobsFetched) {
+          toast(`Fetching ${result.jobsFetched} job${result.jobsFetched !== 1 ? "s" : ""}`);
+        }
       }
       const wl = await getWatchlist();
       setWatchlist(wl.companies);
@@ -336,8 +382,23 @@ function CompaniesPage() {
                 Results
               </div>
               {results.length === 0 && !loading ? (
-                <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                  No companies found.
+                <div className="px-4 py-3">
+                  <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                    No companies found in the curated list.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleFollowByName(searchText)}
+                    className="flex w-full items-center gap-3 rounded-lg bg-sky-50 px-3 py-2.5 text-left text-sm font-medium text-sky-700 transition hover:bg-sky-100 dark:bg-sky-950 dark:text-sky-300 dark:hover:bg-sky-900"
+                  >
+                    <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add "{searchText}" to watchlist
+                  </button>
+                  <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                    Custom companies are tracked manually — no auto-fetched jobs.
+                  </p>
                 </div>
               ) : (
                 <div className="max-h-96 overflow-y-auto py-1">
@@ -373,6 +434,19 @@ function CompaniesPage() {
                       </button>
                     );
                   })}
+                  {/* Manual-add footer: follow any query as a custom company */}
+                  <div className="mt-1 border-t border-gray-100 px-4 py-2 dark:border-gray-800">
+                    <button
+                      type="button"
+                      onClick={() => handleFollowByName(searchText)}
+                      className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left text-xs font-medium text-sky-700 transition hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950"
+                    >
+                      <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add "{searchText}" as a custom company (Manual)
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

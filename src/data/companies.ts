@@ -228,6 +228,8 @@ export const COMPANIES: CompanyEntry[] = [
   { name: "Tome", slug: "tome", ats: "lever" },
   { name: "Vouch", slug: "vouch", ats: "lever" },
   { name: "Writer", slug: "writer", ats: "lever" },
+  // ── JobVaro showcase ──
+  { name: "HRKyle Services", slug: "hrkyle-services", ats: "none" },
 ];
 
 /**

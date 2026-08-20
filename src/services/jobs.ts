@@ -5,7 +5,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
-import { refreshJobsFeedImpl } from "~/services/ats-fetcher";
+import { isRefreshInFlight, triggerFeedRefresh } from "~/services/ats-fetcher";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +38,8 @@ export interface SearchResponse {
   page: number;
   perPage: number;
   totalPages: number;
+  /** True when a background feed refresh is in flight (non-blocking). */
+  refreshing?: boolean;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -119,34 +121,15 @@ export const searchJobs = createServerFn({ method: "GET" }).handler(
 
       // For watchlist filter, build a UNION query across all three job sources
       if (filter === "watchlist" && watchlistSlugs.length > 0) {
-        // Check if jobs_feed has any data for these watchlist companies.
-        // If empty, await the refresh so the user gets results on first visit.
-        const slugPhCheck: string[] = [];
-        const checkParams: string[] = [];
-        let cpid = 1;
-        for (const s of watchlistSlugs) {
-          slugPhCheck.push("$" + cpid);
-          checkParams.push(s);
-          cpid++;
-        }
-        const feedCount = await sql(
-          "SELECT COUNT(*) as ct FROM jobs_feed WHERE company_slug IN (" + slugPhCheck.join(", ") + ")",
-          ...checkParams
-        );
-        const hasFeed = Number((feedCount[0] as Record<string, unknown>).ct) > 0;
-
-        if (!hasFeed) {
-          // First visit or empty feed — await the refresh synchronously
-          try {
-            await refreshJobsFeedImpl();
-          } catch (err) {
-            console.error("Initial jobs feed refresh failed:", err);
-          }
+        // Non-blocking: return cached jobs from jobs_feed immediately and refresh
+        // the feed in the background. Never await the refresh synchronously, so
+        // the My Companies tab shows results fast on first visit.
+        let refreshing = false;
+        if (!isRefreshInFlight()) {
+          triggerFeedRefresh(); // fire-and-forget; throttles to once/hour per company
+          refreshing = isRefreshInFlight();
         } else {
-          // Already have data — fire-and-forget to keep it fresh
-          refreshJobsFeedImpl().catch((err) => {
-            console.error("Auto-refresh jobs feed failed:", err);
-          });
+          refreshing = true;
         }
         const qparams: string[] = [];
         let pid = 1;
@@ -208,7 +191,7 @@ export const searchJobs = createServerFn({ method: "GET" }).handler(
 
         const jobs = rows.map((row) => serializeJob(row as Record<string, unknown>, savedJobIds));
 
-        return { jobs, total, page, perPage, totalPages: Math.ceil(total / perPage) };
+        return { jobs, total, page, perPage, totalPages: Math.ceil(total / perPage), refreshing };
       }
 
       // Standard search across saved_jobs
