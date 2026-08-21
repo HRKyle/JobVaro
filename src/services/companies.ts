@@ -9,16 +9,6 @@ import { fetchAndUpsertCompanyJobs } from "~/services/ats-fetcher";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Slugify a free-text company name, e.g. "HRKyle Services" -> "hrkyle-services". */
-export function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/^\.+|\.+$/g, "");
-}
-
 async function getUserId(): Promise<string | null> {
   try {
     const { getCookie } = await import("@tanstack/react-start/server");
@@ -64,33 +54,37 @@ export const searchCompanies = createServerFn({ method: "GET" }).handler(
 export interface FollowResult {
   success: boolean;
   error?: string;
-  /** Number of jobs fetched & stored for this company right after following (0 for custom/no-ATS). */
+  /** Number of jobs fetched & stored for this company right after following (0 if the feed is empty/unreachable). */
   jobsFetched?: number;
 }
 
 /**
- * Follow a company. Accepts either a curated slug or an arbitrary free-text
- * company name (Goal B). If the slug/name matches a curated entry we keep its
- * real slug + ATS feed; otherwise we insert it as a custom company with no ATS
- * (label: Manual). For companies with a known ATS feed, we immediately fetch
- * their jobs into jobs_feed (fetch-on-follow) and report the count.
+ * Follow a curated, feed-backed company by slug (Option B).
+ *
+ * The watchlist may ONLY contain companies that auto-pull live jobs from a
+ * public ATS feed (Greenhouse / Lever / SmartRecruiters / Ashby). Free-text /
+ * arbitrary company names are NOT accepted — a company with no public feed is
+ * not followable. On follow, jobs are fetched immediately into jobs_feed
+ * (fetch-on-follow) and the count is reported.
  */
 export const followCompany = createServerFn({ method: "POST" }).handler(
   async ({ data }): Promise<FollowResult> => {
     const userId = await getUserId();
     if (!userId) return { success: false, error: "You must be logged in." };
 
-    const { companySlug, companyName } = data as { companySlug?: string; companyName?: string };
-    const name = companyName?.trim();
-    const slug = companySlug?.trim() || (name ? slugify(name) : "");
-    if (!name && !companySlug) return { success: false, error: "Company name is required." };
+    const { companySlug } = data as { companySlug?: string };
+    const slug = companySlug?.trim();
+    if (!slug) return { success: false, error: "Company is required." };
 
-    // Resolve to a real curated entry when possible; otherwise treat as custom.
-    const resolvedName = name || slug;
+    // Option B: only curated, feed-backed companies are followable.
     const curated = getCompanyBySlug(slug);
-    const finalSlug = curated?.slug ?? slug;
-    const finalName = curated?.name ?? resolvedName;
-    const ats = curated?.ats ?? "none";
+    if (!curated) return { success: false, error: "Company not found." };
+    if (curated.ats === "none") {
+      return { success: false, error: "This company does not publish an auto-trackable job feed." };
+    }
+
+    const finalSlug = curated.slug;
+    const finalName = curated.name;
 
     try {
       await sql`
@@ -103,15 +97,13 @@ export const followCompany = createServerFn({ method: "POST" }).handler(
       return { success: false, error: "Failed to follow company." };
     }
 
-    // Fetch-on-follow: for companies with a known ATS feed, pull jobs immediately.
-    // Degrades gracefully — the follow itself always succeeds even if the fetch fails.
+    // Fetch-on-follow: pull this company's jobs immediately. Degrades
+    // gracefully — the follow itself always succeeds even if the feed is empty.
     let jobsFetched = 0;
-    if (ats !== "none") {
-      try {
-        jobsFetched = await fetchAndUpsertCompanyJobs(finalSlug, finalName);
-      } catch (err) {
-        console.error(`followCompany: background fetch for ${finalSlug} failed:`, err);
-      }
+    try {
+      jobsFetched = await fetchAndUpsertCompanyJobs(finalSlug, finalName);
+    } catch (err) {
+      console.error(`followCompany: background fetch for ${finalSlug} failed:`, err);
     }
 
     return { success: true, jobsFetched };
