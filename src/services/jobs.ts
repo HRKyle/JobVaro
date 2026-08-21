@@ -6,6 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { isRefreshInFlight, triggerFeedRefresh } from "~/services/ats-fetcher";
+import { geocodeCity, geocodeJobLocation } from "~/services/geocode";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,6 +28,10 @@ export interface SearchParams {
   search?: string;
   source?: string;
   location?: string;
+  /** City name used for radius filtering (paired with radiusMiles). */
+  city?: string;
+  /** Distance in miles (10/25/50/100). Only applied when `city` is provided. */
+  radiusMiles?: number;
   sort?: "newest" | "oldest" | "company";
   page?: number;
   filter?: "all" | "watchlist";
@@ -40,6 +45,8 @@ export interface SearchResponse {
   totalPages: number;
   /** True when a background feed refresh is in flight (non-blocking). */
   refreshing?: boolean;
+  /** Radius filter state for the UI (hint / empty state). */
+  radius?: { city: string; radiusMiles: number; applied: boolean };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -68,6 +75,8 @@ export const searchJobs = createServerFn({ method: "GET" }).handler(
     const search = params.search?.trim() || "";
     const source = params.source?.trim() || "";
     const location = params.location?.trim() || "";
+    const city = params.city?.trim() || "";
+    const radiusMiles = Number(params.radiusMiles) > 0 ? Number(params.radiusMiles) : 50;
     const sort = params.sort || "newest";
     const page = Math.max(1, params.page ?? 1);
     const perPage = 20;
@@ -119,117 +128,110 @@ export const searchJobs = createServerFn({ method: "GET" }).handler(
         orderClause = "ORDER BY posted_at DESC NULLS LAST";
       }
 
-      // For watchlist filter, build a UNION query across all three job sources
+      // For watchlist filter, build a UNION query across all three job sources.
       if (filter === "watchlist" && watchlistSlugs.length > 0) {
         // Non-blocking: return cached jobs from jobs_feed immediately and refresh
         // the feed in the background. Never await the refresh synchronously, so
         // the My Companies tab shows results fast on first visit.
-        let refreshing = false;
         if (!isRefreshInFlight()) {
           triggerFeedRefresh(); // fire-and-forget; throttles to once/hour per company
-          refreshing = isRefreshInFlight();
-        } else {
-          refreshing = true;
         }
-        const qparams: string[] = [];
-        let pid = 1;
-
-        const searchCondition = search
-          ? " AND (title ILIKE $" + pid + " OR company ILIKE $" + pid + " OR description ILIKE $" + pid + " OR location ILIKE $" + pid + ")"
-          : "";
-        if (search) { qparams.push("%" + search + "%"); pid++; }
-
-        const locationCondition = location
-          ? " AND location ILIKE $" + pid
-          : "";
-        if (location) { qparams.push("%" + location + "%"); pid++; }
-
-        const sourceCondition = source
-          ? " AND source = $" + pid
-          : "";
-        if (source) { qparams.push(source); pid++; }
-
-        // Build company slugs condition
-        const slugPh: string[] = [];
-        for (const s of watchlistSlugs) {
-          slugPh.push("$" + pid);
-          qparams.push(s);
-          pid++;
-        }
-        const slugCondition = " AND company_slug IN (" + slugPh.join(", ") + ")";
-
-        // For saved_jobs/community_jobs match by company name
-        const namePh: string[] = [];
-        for (const s of watchlistSlugs) {
-          namePh.push("$" + pid);
-          qparams.push(s.replace(/-/g, " ").toLowerCase());
-          pid++;
-        }
-        const companyNamesCondition = " AND LOWER(company) IN (" + namePh.join(", ") + ")";
-
-        const unionQuery =
-          "SELECT id, title, company, location, description, url, source, salary, posted_at, NULL::timestamptz as saved_at " +
-          "FROM jobs_feed WHERE 1=1" + slugCondition + searchCondition + locationCondition + sourceCondition + " " +
-          "UNION ALL " +
-          "SELECT id, title, company, location, description, url, source, salary, posted_at, saved_at " +
-          "FROM saved_jobs WHERE 1=1" + companyNamesCondition + searchCondition + locationCondition + sourceCondition + " " +
-          "UNION ALL " +
-          "SELECT id, title, company, location, description, url, source, salary, posted_at, NULL::timestamptz as saved_at " +
-          "FROM community_jobs WHERE 1=1" + companyNamesCondition + searchCondition + locationCondition + sourceCondition;
-
-        // Count total
-        const countQuery = "SELECT COUNT(*) as total FROM (" + unionQuery + ") sub";
-        const countResult = await sql(countQuery, ...qparams);
-        const total = Number((countResult[0] as Record<string, unknown>).total);
-
-        // Fetch page with ordering
-        const dataQuery =
-          "SELECT * FROM (" + unionQuery + ") sub " +
-          orderClause + " " +
-          "LIMIT " + perPage + " OFFSET " + offset;
-        const rows = await sql(dataQuery, ...qparams);
-
-        const jobs = rows.map((row) => serializeJob(row as Record<string, unknown>, savedJobIds));
-
-        return { jobs, total, page, perPage, totalPages: Math.ceil(total / perPage), refreshing };
       }
 
-      // Standard search across saved_jobs
-      const conditions: string[] = [];
+      // Shared condition builder. All conditions append their params to the
+      // shared qparams array exactly ONCE, then the resulting fragment is spliced
+      // into each UNION branch (param numbering stays consistent across branches,
+      // matching the existing query-building pattern in this file).
       const qparams: string[] = [];
       let pid = 1;
 
-      if (search) {
-        conditions.push(
-          "(title ILIKE $" + pid + " OR company ILIKE $" + pid + " OR description ILIKE $" + pid + " OR location ILIKE $" + pid + ")",
-        );
-        qparams.push("%" + search + "%");
-        pid++;
+      const searchCondition = search
+        ? " AND (title ILIKE $" + pid + " OR company ILIKE $" + pid + " OR description ILIKE $" + pid + " OR location ILIKE $" + pid + ")"
+        : "";
+      if (search) { qparams.push("%" + search + "%"); pid++; }
+
+      const locationCondition = location
+        ? " AND location ILIKE $" + pid
+        : "";
+      if (location) { qparams.push("%" + location + "%"); pid++; }
+
+      const sourceCondition = source
+        ? " AND source = $" + pid
+        : "";
+      if (source) { qparams.push(source); pid++; }
+
+      // ── Radius filtering ───────────────────────────────────────────────────
+      // Only active when a city is provided. Geocode the city server-side to
+      // lat/lng, then SQL-haversine each job (with lat/lng) to the radius.
+      // Remote jobs match regardless of distance. If geocoding fails, radius is
+      // not applied (graceful fallback — no radius "applied").
+      let radiusCondition = "";
+      let radiusMeta: SearchResponse["radius"] | undefined;
+      if (city) {
+        const coords = await geocodeCity(city);
+        radiusMeta = { city, radiusMiles, applied: !!coords };
+        if (coords) {
+          const pLat = "$" + pid; qparams.push(String(coords.lat)); pid++;
+          const pLng = "$" + pid; qparams.push(String(coords.lng)); pid++;
+          const pR = "$" + pid; qparams.push(String(radiusMiles)); pid++;
+          radiusCondition =
+            " AND (LOWER(COALESCE(location,'')) LIKE '%remote%' OR (" +
+            "lat IS NOT NULL AND lng IS NOT NULL AND " +
+            "(3959 * acos(least(1, cos(radians(" + pLat +
+            ")) * cos(radians(lat)) * cos(radians(lng) - radians(" + pLng +
+            ")) + sin(radians(" + pLat + ")) * sin(radians(lat))))) < " + pR +
+            "))";
+        }
       }
 
-      if (source) {
-        conditions.push("source = $" + pid);
-        qparams.push(source);
+      // Company (watchlist) filters for each branch.
+      const slugPh: string[] = [];
+      for (const s of watchlistSlugs) {
+        slugPh.push("$" + pid);
+        qparams.push(s.replace(/-/g, " ").toLowerCase());
         pid++;
       }
+      const slugCondition =
+        watchlistSlugs.length > 0
+          ? " AND company_slug IN (" + slugPh.join(", ") + ")"
+          : "";
 
-      if (location) {
-        conditions.push("location ILIKE $" + pid);
-        qparams.push("%" + location + "%");
+      const namePh: string[] = [];
+      for (const s of watchlistSlugs) {
+        namePh.push("$" + pid);
+        qparams.push(s.replace(/-/g, " ").toLowerCase());
         pid++;
       }
+      const companyNamesCondition =
+        watchlistSlugs.length > 0
+          ? " AND LOWER(company) IN (" + namePh.join(", ") + ")"
+          : "";
 
-      const whereClause = conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : "";
+      // For "watchlist" filter require membership in at least one branch; that is
+      // enforced by the company conditions above (feed matches by slug, saved and
+      // community by company name). For "all" there are no company conditions, so
+      // we must not let dead branches return everything: only include a branch's
+      // rows when it adds value. Jobs_feed is the primary source; saved and
+      // community contribute their own rows.
+      const unionQuery =
+        "SELECT id, title, company, location, lat, lng, description, url, source, salary, posted_at, NULL::timestamptz as saved_at " +
+        "FROM jobs_feed WHERE 1=1" + slugCondition + searchCondition + locationCondition + sourceCondition + radiusCondition + " " +
+        "UNION ALL " +
+        "SELECT id, title, company, location, lat, lng, description, url, source, salary, posted_at, saved_at " +
+        "FROM saved_jobs WHERE 1=1" + companyNamesCondition + searchCondition + locationCondition + sourceCondition + radiusCondition + " " +
+        "UNION ALL " +
+        "SELECT id, title, company, location, lat, lng, description, url, source, salary, posted_at, NULL::timestamptz as saved_at " +
+        "FROM community_jobs WHERE 1=1" + companyNamesCondition + searchCondition + locationCondition + sourceCondition + radiusCondition;
 
       // Count total
-      const countQuery = "SELECT COUNT(*) as total FROM saved_jobs " + whereClause;
+      const countQuery = "SELECT COUNT(*) as total FROM (" + unionQuery + ") sub";
       const countResult = await sql(countQuery, ...qparams);
       const total = Number((countResult[0] as Record<string, unknown>).total);
 
-      // Fetch page
+      // Fetch page with ordering
       const dataQuery =
-        "SELECT id, title, company, location, description, url, source, salary, posted_at, saved_at " +
-        "FROM saved_jobs " + whereClause + " " + orderClause + " " +
+        "SELECT * FROM (" + unionQuery + ") sub " +
+        orderClause + " " +
         "LIMIT " + perPage + " OFFSET " + offset;
       const rows = await sql(dataQuery, ...qparams);
 
@@ -241,6 +243,8 @@ export const searchJobs = createServerFn({ method: "GET" }).handler(
         page,
         perPage,
         totalPages: Math.ceil(total / perPage),
+        refreshing: filter === "watchlist" && isRefreshInFlight(),
+        radius: radiusMeta,
       };
     } catch (err) {
       console.error("searchJobs error:", err);
@@ -321,8 +325,21 @@ export const saveJob = createServerFn({ method: "POST" }).handler(
         return { success: true }; // Already saved, treat as success
       }
 
+      // Resolve coordinates for radius search (best-effort, never blocking).
+      let lat: number | null = null;
+      let lng: number | null = null;
+      try {
+        const coords = await geocodeJobLocation(job.location);
+        if (coords) {
+          lat = coords.lat;
+          lng = coords.lng;
+        }
+      } catch {
+        // ignore geocoding failures — job still saves without coordinates
+      }
+
       await sql`
-        INSERT INTO saved_jobs (user_id, title, company, location, description, url, source, salary, posted_at, external_id)
+        INSERT INTO saved_jobs (user_id, title, company, location, description, url, source, salary, posted_at, external_id, lat, lng)
         VALUES (
           ${user_id},
           ${job.title},
@@ -333,7 +350,9 @@ export const saveJob = createServerFn({ method: "POST" }).handler(
           ${job.source ?? null},
           ${job.salary ?? null},
           ${job.posted_at ? new Date(job.posted_at).toISOString() : null},
-          ${job.external_id ?? null}
+          ${job.external_id ?? null},
+          ${lat},
+          ${lng}
         )
       `;
 

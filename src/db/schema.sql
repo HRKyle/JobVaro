@@ -141,6 +141,19 @@ CREATE TABLE IF NOT EXISTS compass_analyses (
 );
 CREATE INDEX IF NOT EXISTS idx_compass_analyses_user ON compass_analyses(user_id, created_at DESC);
 
+-- Geocoding columns (radius search): lat/lng for each job's location text,
+-- populated best-effort during feed refresh / on save. NULL = not geocodable
+-- (e.g. Remote, ambiguous, or unresolved) → excluded from radius filtering.
+ALTER TABLE saved_jobs     ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE saved_jobs     ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+ALTER TABLE jobs_feed      ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE jobs_feed      ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+ALTER TABLE community_jobs ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE community_jobs ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+CREATE INDEX IF NOT EXISTS idx_saved_jobs_geo     ON saved_jobs(lat, lng);
+CREATE INDEX IF NOT EXISTS idx_jobs_feed_geo      ON jobs_feed(lat, lng);
+CREATE INDEX IF NOT EXISTS idx_community_jobs_geo ON community_jobs(lat, lng);
+
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_saved_jobs_user_id     ON saved_jobs(user_id);
 CREATE INDEX IF NOT EXISTS idx_applications_user_id   ON applications(user_id);

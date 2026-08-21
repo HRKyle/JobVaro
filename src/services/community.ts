@@ -5,6 +5,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
+import { geocodeJobLocation } from "~/services/geocode";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -162,8 +163,16 @@ export const shareJob = createServerFn({ method: "POST" }).handler(
       return { success: false, error: "Company is required." };
 
     try {
+      let lat: number | null = null;
+      let lng: number | null = null;
+      try {
+        const coords = await geocodeJobLocation(input.location?.trim() ?? null);
+        if (coords) { lat = coords.lat; lng = coords.lng; }
+      } catch {
+        // ignore — best-effort geocoding
+      }
       const rows = await sql`
-        INSERT INTO community_jobs (user_id, title, company, location, description, url, salary, source)
+        INSERT INTO community_jobs (user_id, title, company, location, description, url, salary, source, lat, lng)
         VALUES (
           ${userId},
           ${input.title.trim()},
@@ -172,7 +181,9 @@ export const shareJob = createServerFn({ method: "POST" }).handler(
           ${input.description?.trim() ?? null},
           ${input.url?.trim() ?? null},
           ${input.salary?.trim() ?? null},
-          ${input.source?.trim() ?? null}
+          ${input.source?.trim() ?? null},
+          ${lat},
+          ${lng}
         )
         RETURNING id, user_id, title, company, location, description, url, salary, source, posted_at
       `;

@@ -267,6 +267,8 @@ function SearchPage() {
   const [searchText, setSearchText] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  // "" = any distance; otherwise a number of miles (10/25/50/100). Default 50.
+  const [radiusMiles, setRadiusMiles] = useState("50");
   const [sort, setSort] = useState<"newest" | "oldest" | "company">("newest");
   const [filter, setFilter] = useState<"all" | "watchlist">("all");
   const [results, setResults] = useState<SearchResponse>(initialResults);
@@ -283,17 +285,22 @@ function SearchPage() {
       search: string;
       source: string;
       location: string;
+      radiusMiles: string;
       sort: string;
       page: number;
       filter: string;
     }) => {
       setLoading(true);
+      const radiusActive = params.radiusMiles !== "" && params.location.trim() !== "";
       try {
         const res = await searchJobs({
           data: {
             search: params.search,
             source: params.source,
             location: params.location,
+            // Radius is driven by the same city the user typed in Location.
+            city: radiusActive ? params.location.trim() : undefined,
+            radiusMiles: radiusActive ? Number(params.radiusMiles) : undefined,
             sort: params.sort as "newest" | "oldest" | "company",
             page: params.page,
             filter: params.filter as "all" | "watchlist",
@@ -337,6 +344,7 @@ function SearchPage() {
           search: searchText,
           source: sourceFilter,
           location: locationFilter,
+          radiusMiles,
           sort,
           page: 1,
           filter,
@@ -351,19 +359,20 @@ function SearchPage() {
 
   // Non-debounced filter changes
   const doSearch = useCallback(
-    (overrides: Partial<{ search: string; source: string; location: string; sort: string; page: number; filter: string }>) => {
+    (overrides: Partial<{ search: string; source: string; location: string; radiusMiles: string; sort: string; page: number; filter: string }>) => {
       const s = overrides.search ?? searchText;
       const so = overrides.source ?? sourceFilter;
       const l = overrides.location ?? locationFilter;
+      const r = overrides.radiusMiles ?? radiusMiles;
       const sr = overrides.sort ?? sort;
       const p = overrides.page ?? 1;
       const f = overrides.filter ?? filter;
 
       debouncedSearchText.current = s;
       setPage(p);
-      fetchResults({ search: s, source: so, location: l, sort: sr, page: p, filter: f });
+      fetchResults({ search: s, source: so, location: l, radiusMiles: r, sort: sr, page: p, filter: f });
     },
-    [searchText, sourceFilter, locationFilter, sort, filter, fetchResults],
+    [searchText, sourceFilter, locationFilter, radiusMiles, sort, filter, fetchResults],
   );
 
   const handleSourceChange = useCallback(
@@ -388,6 +397,14 @@ function SearchPage() {
       }
     },
     [doSearch, locationFilter],
+  );
+
+  const handleRadiusChange = useCallback(
+    (val: string) => {
+      setRadiusMiles(val);
+      doSearch({ radiusMiles: val, page: 1 });
+    },
+    [doSearch],
   );
 
   const handleSortChange = useCallback(
@@ -498,15 +515,44 @@ function SearchPage() {
               ))}
             </select>
 
-            {/* Location filter */}
+            {/* Location filter (also the city for radius search) */}
             <input
               type="text"
-              placeholder="Location…"
+              placeholder="City…"
+              title="Enter a city to filter by location (e.g. Austin, New York)"
               value={locationFilter}
               onChange={(e) => handleLocationInput(e.target.value)}
               onKeyDown={handleLocationKeyDown}
-              className="w-40 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
+              className="w-32 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
             />
+
+            {/* Distance (radius) selector */}
+            <select
+              value={radiusMiles}
+              onChange={(e) => handleRadiusChange(e.target.value)}
+              title="Filter jobs within a distance of the city above"
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+            >
+              <option value="">Any distance</option>
+              <option value="10">Within 10 mi</option>
+              <option value="25">Within 25 mi</option>
+              <option value="50">Within 50 mi</option>
+              <option value="100">Within 100 mi</option>
+            </select>
+
+            {/* Reset radius (clear location + distance) */}
+            {radiusMiles !== "" && locationFilter.trim() !== "" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setLocationFilter("");
+                  setRadiusMiles("50");
+                }}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-500 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+              >
+                Clear
+              </button>
+            )}
 
             {/* Sort */}
             <select
@@ -543,6 +589,25 @@ function SearchPage() {
 
       {/* Results */}
       <div className="mx-auto max-w-4xl px-4 py-6">
+        {/* Radius status / hint */}
+        {results.radius && (
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+            {results.radius.applied ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 font-medium text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Showing jobs within {results.radius.radiusMiles} miles of {results.radius.city}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                Couldn’t locate “{results.radius.city}” — showing all locations
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Loading state */}
         {loading && results.jobs.length === 0 && (
           <div className="space-y-4">
@@ -569,10 +634,14 @@ function SearchPage() {
               />
             </svg>
             <h3 className="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-300">
-              No jobs found
+              {results.radius?.applied
+                ? `No jobs within ${results.radius.radiusMiles} miles of ${results.radius.city}`
+                : "No jobs found"}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Try adjusting your filters or search terms.
+              {results.radius?.applied
+                ? "Try increasing the distance, or clear the location filter. Remote jobs still show up."
+                : "Try adjusting your filters or search terms."}
             </p>
           </div>
         )}

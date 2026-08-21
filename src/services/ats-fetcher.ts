@@ -6,6 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { COMPANIES, getCompanyBySlug, type CompanyEntry } from "~/data/companies";
+import { geocodeJobLocation, backfillJobGeocoding } from "~/services/geocode";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -249,10 +250,21 @@ export async function fetchAndUpsertCompanyJobs(slug: string, name: string): Pro
 
   const jobs = await fetchCompanyJobsImpl(slug, name);
   if (jobs.length === 0) return 0;
-
   for (const job of jobs) {
+    // Best-effort geocoding for radius search. Never blocks or throws.
+    let lat: number | null = null;
+    let lng: number | null = null;
+    try {
+      const coords = await geocodeJobLocation(job.location);
+      if (coords) {
+        lat = coords.lat;
+        lng = coords.lng;
+      }
+    } catch {
+      // ignore — job still stored without coordinates
+    }
     await sql`
-      INSERT INTO jobs_feed (external_id, title, company, company_slug, location, description, url, salary, source, posted_at)
+      INSERT INTO jobs_feed (external_id, title, company, company_slug, location, description, url, salary, source, posted_at, lat, lng)
       VALUES (
         ${job.external_id},
         ${job.title},
@@ -263,7 +275,9 @@ export async function fetchAndUpsertCompanyJobs(slug: string, name: string): Pro
         ${job.url},
         ${job.salary},
         ${job.source},
-        ${job.posted_at ? new Date(job.posted_at).toISOString() : null}
+        ${job.posted_at ? new Date(job.posted_at).toISOString() : null},
+        ${lat},
+        ${lng}
       )
       ON CONFLICT (external_id) DO UPDATE SET
         title = EXCLUDED.title,
@@ -407,6 +421,9 @@ export async function refreshJobsFeedImpl(): Promise<{ total: number; companies:
     const workerCount = Math.min(REFRESH_CONCURRENCY, Math.max(1, filteredRows.length));
     await Promise.all(Array.from({ length: workerCount }, worker));
 
+    // Best-effort geocode any pre-existing rows that still lack coordinates.
+    // Fire-and-forget so it never blocks the refresh response.
+    backfillJobGeocoding().catch(() => {});
     return { total, companies: companyCount };
   } catch (err) {
     console.error("refreshJobsFeedImpl error:", err);
