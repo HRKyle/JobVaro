@@ -29,14 +29,44 @@ const getBusinessName = createServerFn({ method: "GET" }).handler(async () => {
   }
 });
 
+const SITE_URL = "https://www.jobvaro.com"; // canonical/live domain
+const SITE_TITLE = "JobVaro — Find your next role";
+const SITE_DESC =
+  "JobVaro is your personal job search command center — track every application, auto-fill from any job URL, and browse community jobs. A Product of HRKyle Services.";
+const OG_IMAGE = `${SITE_URL}/og-image.png`;
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "JobVaro — Find your next role" },
+      { title: SITE_TITLE },
+      {
+        name: "description",
+        content: SITE_DESC,
+      },
+      // Open Graph / social preview
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "JobVaro — A Product of HRKyle Services" },
+      { property: "og:title", content: SITE_TITLE },
+      { property: "og:description", content: SITE_DESC },
+      { property: "og:url", content: SITE_URL },
+      { property: "og:image", content: OG_IMAGE },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "JobVaro — your personal job search command center" },
+      // Twitter / X card
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: SITE_TITLE },
+      { name: "twitter:description", content: SITE_DESC },
+      { name: "twitter:image", content: OG_IMAGE },
+      { name: "twitter:image:alt", content: "JobVaro — your personal job search command center" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "canonical", href: SITE_URL },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+    ],
   }),
   notFoundComponent: () => <div>Page not found</div>,
   loader: async () => {
