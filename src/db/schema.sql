@@ -24,6 +24,12 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS expiry_notice_level INT DEFAULT 0;
 -- over-limit data is permanently deleted. grace_notice_level dedups emails.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS grace_ends_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS grace_notice_level INT DEFAULT 0;
+-- Email verification (cuts fake accounts): new signups must click a link sent
+-- to their real inbox before they can log in. Existing accounts (created before
+-- this migration) are backfilled as verified so they keep access unchanged —
+-- only NEW signups are gated. Admins are always treated as verified.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE;
+UPDATE users SET email_verified = TRUE;
 
 -- Saved / bookmarked jobs (from external sources or manual entry)
 CREATE TABLE IF NOT EXISTS saved_jobs (
@@ -177,3 +183,17 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_reset_tokens_user    ON password_reset_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_reset_tokens_expires ON password_reset_tokens(expires_at);
+-- Email verification tokens: single-use, 24-hour expiry for the "confirm your
+-- email" step after signup. Stored hashed (SHA-256) at rest, same pattern as
+-- password reset tokens — the raw token only ever lives in the user's inbox.
+CREATE TABLE IF NOT EXISTS verification_tokens (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash VARCHAR(255) UNIQUE NOT NULL, -- SHA-256 of the raw verify token
+  email      VARCHAR(255) NOT NULL,        -- the address that must be confirmed
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at    TIMESTAMPTZ,                  -- NULL until the token is consumed
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_verification_tokens_user    ON verification_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_verification_tokens_expires ON verification_tokens(expires_at);

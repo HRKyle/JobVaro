@@ -1,5 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { signUp, login, type AuthUser } from "~/auth/functions";
+import {
+  signUp,
+  login,
+  resendVerification,
+  type AuthUser,
+} from "~/auth/functions";
 
 // After a successful login or signup, route the user to the Welcome/Dashboard
 // page. This is the single, immediate post-auth destination (only fires on an
@@ -114,6 +119,26 @@ function SignUpForm({ onAuthSuccess }: AuthFormsProps) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sentTo, setSentTo] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState("");
+
+  async function handleResend() {
+    setResending(true);
+    setResendMsg("");
+    try {
+      const result = await resendVerification({ data: { email: sentTo } });
+      setResendMsg(
+        result.success
+          ? "A new confirmation email is on its way."
+          : result.error ?? "Something went wrong. Please try again.",
+      );
+    } catch {
+      setResendMsg("Something went wrong. Please try again.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -136,8 +161,13 @@ function SignUpForm({ onAuthSuccess }: AuthFormsProps) {
     try {
       const result = await signUp({ data: { email, password, name: name.trim() } });
       if (result.success) {
-        onAuthSuccess(result.user);
-        goToWelcome();
+        if (result.needsVerification) {
+          // Account created but not yet verified — ask them to check their inbox.
+          setSentTo(result.email);
+        } else {
+          onAuthSuccess(result.user);
+          goToWelcome();
+        }
       } else {
         setError(result.error);
       }
@@ -146,6 +176,36 @@ function SignUpForm({ onAuthSuccess }: AuthFormsProps) {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (sentTo) {
+    return (
+      <div className="flex w-full flex-col gap-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-5 text-left dark:border-indigo-900 dark:bg-indigo-950/40">
+        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-50">
+          Almost there — check your email
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          We sent a confirmation link to{" "}
+          <span className="font-semibold text-indigo-700 dark:text-indigo-300">{sentTo}</span>.
+          Click it to verify your email and log in. The link expires in 24 hours.
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Didn't get it? Check your spam folder. The link expires in 24 hours —
+          if it runs out, use the button below to send a new one.
+        </p>
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resending}
+          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-50"
+        >
+          {resending ? "Sending…" : "Resend confirmation email"}
+        </button>
+        {resendMsg && (
+          <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">{resendMsg}</p>
+        )}
+      </div>
+    );
   }
 
   return (
