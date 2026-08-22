@@ -23,6 +23,13 @@ export interface AuthUser {
 type AuthResult =
   | { success: true; user: AuthUser }
   | { success: false; error: string };
+// SignUpResult: new accounts must verify their email before they can log in,
+// so a successful signup does NOT auto-login. It instead reports that a
+// verification email is on its way. (Admin seed accounts still auto-login.)
+type SignUpResult =
+  | { success: true; needsVerification: true; email: string }
+  | { success: true; needsVerification: false; user: AuthUser }
+  | { success: false; error: string };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -66,7 +73,7 @@ function toAuthUser(row: {
 // ── signUp ──────────────────────────────────────────────────────────────────
 
 export const signUp = createServerFn({ method: "POST" }).handler(
-  async ({ data }): Promise<AuthResult> => {
+  async ({ data }): Promise<SignUpResult> => {
     const { email, password, name } = data as {
       email: string;
       password: string;
@@ -107,11 +114,31 @@ export const signUp = createServerFn({ method: "POST" }).handler(
         is_admin: boolean;
       };
 
-      // Create a session so the user is immediately logged in
-      const { createSession } = await import("./session");
-      await createSession(String(user.id));
+      // Admin seed/backfill accounts skip the verification step (treated as
+      // verified). Everyone else must confirm their email before logging in.
+      if (user.is_admin) {
+        const { createSession } = await import("./session");
+        await createSession(String(user.id));
+        return { success: true, needsVerification: false, user: toAuthUser(user) };
+      }
 
-      return { success: true, user: toAuthUser(user) };
+      // Issue a single-use verification token (24h) and email it to the user.
+      const raw = randomToken();
+      const hash = await sha256Hex(raw);
+      const expiresAt = new Date(Date.now() + VERIFY_TOKEN_TTL_MS);
+      await sql`
+        INSERT INTO verification_tokens (user_id, token_hash, email, expires_at)
+        VALUES (${String(user.id)}, ${hash}, ${email}, ${expiresAt.toISOString()})
+      `;
+      const verifyUrl = `https://www.jobvaro.com/verify?token=${encodeURIComponent(raw)}`;
+      const { sendEmail } = await import("~/services/email");
+      await sendEmail({
+        to: email,
+        subject: "Confirm your JobVaro email",
+        html: verificationEmailHtml(verifyUrl),
+      });
+      // Do NOT auto-login — the account is locked until verified.
+      return { success: true, needsVerification: true, email: String(user.email) };
     } catch (err) {
       console.error("signUp error:", err);
       return { success: false, error: "Something went wrong. Please try again." };
@@ -133,7 +160,7 @@ export const login = createServerFn({ method: "POST" }).handler(
 
     try {
       const rows = await sql`
-        SELECT id, email, name, plan, password_hash, is_admin
+        SELECT id, email, name, plan, password_hash, is_admin, email_verified
         FROM users
         WHERE email = ${email}
         LIMIT 1
@@ -150,11 +177,22 @@ export const login = createServerFn({ method: "POST" }).handler(
         plan: string;
         password_hash: string;
         is_admin: boolean;
+        email_verified: boolean | null;
       };
 
       const valid = await verifyPassword(password, String(row.password_hash));
       if (!valid) {
         return { success: false, error: "Invalid email or password." };
+      }
+
+      // Non-admin accounts must confirm their email before they can log in.
+      // (Admins are always treated as verified; existing accounts were backfilled.)
+      if (!row.is_admin && !row.email_verified) {
+        return {
+          success: false,
+          error:
+            "Please confirm your email address before logging in — check your inbox for the verification link we sent.",
+        };
       }
 
       const { createSession } = await import("./session");
@@ -203,6 +241,7 @@ export const getSessionToken = createServerFn({ method: "GET" }).handler(
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 60 minutes
 const RESET_COOLDOWN_MS = 60 * 1000; // at most one reset email per account / min
+const VERIFY_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours for email verification
 
 async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
@@ -259,6 +298,142 @@ function resetEmailHtml(resetUrl: string): string {
 </html>`;
 }
 
+function verificationEmailHtml(verifyUrl: string): string {
+  return `<!DOCTYPE html>
+<html>
+  <body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
+            <tr>
+              <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:24px 32px;">
+                <span style="color:#ffffff;font-size:20px;font-weight:800;letter-spacing:-0.02em;">JobVaro</span>
+                <span style="color:#c7d2fe;font-size:12px;font-weight:600;margin-left:8px;">by HRKyle</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px;color:#27272a;font-size:15px;line-height:1.6;">
+                <p>Welcome to <strong>JobVaro</strong> — your personal job search command center.</p>
+                <p>Please confirm your email address to finish creating your account. This link expires in <strong>24 hours</strong> and can only be used once.</p>
+                <p style="margin:28px 0 0 0;text-align:center;">
+                  <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 28px;border-radius:8px;">Confirm my email</a>
+                </p>
+                <p style="margin:28px 0 0 0;font-size:13px;color:#71717a;">If the button doesn't work, copy and paste this link into your browser:<br /><a href="${verifyUrl}" style="color:#4f46e5;word-break:break-all;">${verifyUrl}</a></p>
+                <p style="margin:20px 0 0 0;font-size:13px;color:#71717a;">If you didn't create a JobVaro account, you can safely ignore this email.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px;border-top:1px solid #f0f0f2;color:#71717a;font-size:12px;line-height:1.5;">
+                A Product of <a href="https://www.jobvaro.com" style="color:#4f46e5;">HRKyle Services</a> — Built for Job Seekers by Recruiting Pros.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+// ── confirmEmail ─────────────────────────────────────────────────────────────
+// Validates the single-use token from the verification email (exists, unused,
+// unexpired), marks the account verified, clears the token, and auto-logs the
+// user in so they land in their dashboard immediately.
+export const confirmEmail = createServerFn({ method: "POST" }).handler(
+  async ({
+    data,
+  }): Promise<AuthResult> => {
+    const { token } = (data ?? {}) as { token?: string };
+    if (!token || typeof token !== "string" || token.length < 20) {
+      return {
+        success: false,
+        error: "This verification link is invalid or has expired. Please sign up again to receive a new one.",
+      };
+    }
+    try {
+      const hash = await sha256Hex(token);
+      const rows = await sql`
+        SELECT vt.user_id
+        FROM verification_tokens vt
+        JOIN users u ON u.id = vt.user_id
+        WHERE vt.token_hash = ${hash}
+          AND vt.used_at IS NULL
+          AND vt.expires_at > now()
+        LIMIT 1
+      `;
+      if (rows.length === 0) {
+        return {
+          success: false,
+          error: "This verification link is invalid or has expired. Please sign up again to receive a new one.",
+        };
+      }
+      const userId = String((rows[0] as { user_id: string }).user_id);
+      // Mark verified, consume this token, and clear any other outstanding ones.
+      await sql`UPDATE users SET email_verified = TRUE WHERE id = ${userId}`;
+      await sql`UPDATE verification_tokens SET used_at = now() WHERE token_hash = ${hash}`;
+      await sql`DELETE FROM verification_tokens WHERE user_id = ${userId} AND used_at IS NULL`;
+      const userRows = await sql`
+        SELECT id, email, name, plan, is_admin
+        FROM users
+        WHERE id = ${userId}
+        LIMIT 1
+      `;
+      if (userRows.length === 0) {
+        return { success: false, error: "Something went wrong. Please try again." };
+      }
+      const { createSession } = await import("./session");
+      await createSession(userId);
+      return { success: true, user: toAuthUser(userRows[0] as { id: string; email: string; name: string | null; plan: string; is_admin: boolean }) };
+    } catch (err) {
+      console.error("confirmEmail error:", err);
+      return { success: false, error: "Something went wrong. Please try again." };
+    }
+  },
+);
+// ── resendVerification ───────────────────────────────────────────────────────
+// Sends a fresh confirmation link to an unverified account. Always answers
+// generically to avoid leaking which emails have accounts. No-op (but "success")
+// for verified, admin, or unknown addresses.
+export const resendVerification = createServerFn({ method: "POST" }).handler(
+  async ({
+    data,
+  }): Promise<{ success: true } | { success: false; error: string }> => {
+    const { email } = (data ?? {}) as { email?: string };
+    const normalized = (email ?? "").trim().toLowerCase();
+    if (!normalized || !normalized.includes("@")) {
+      return { success: true };
+    }
+    try {
+      const rows = await sql`
+        SELECT id, email_verified, is_admin FROM users
+        WHERE email = ${normalized} LIMIT 1
+      `;
+      if (rows.length > 0) {
+        const row = rows[0] as { id: string; email_verified: boolean | null; is_admin: boolean };
+        if (!row.is_admin && !row.email_verified) {
+          const raw = randomToken();
+          const hash = await sha256Hex(raw);
+          const expiresAt = new Date(Date.now() + VERIFY_TOKEN_TTL_MS);
+          await sql`
+            INSERT INTO verification_tokens (user_id, token_hash, email, expires_at)
+            VALUES (${String(row.id)}, ${hash}, ${normalized}, ${expiresAt.toISOString()})
+          `;
+          const verifyUrl = `https://www.jobvaro.com/verify?token=${encodeURIComponent(raw)}`;
+          const { sendEmail } = await import("~/services/email");
+          await sendEmail({
+            to: normalized,
+            subject: "Confirm your JobVaro email",
+            html: verificationEmailHtml(verifyUrl),
+          });
+        }
+      }
+      return { success: true };
+    } catch (err) {
+      console.error("resendVerification error:", err);
+      return { success: true };
+    }
+  },
+);
 // ── requestPasswordReset ─────────────────────────────────────────────────────
 // Always returns a generic success message whether or not the email has an
 // account — this prevents account enumeration. If no account exists, it simply
