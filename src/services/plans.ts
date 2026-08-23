@@ -72,7 +72,7 @@ export const NOTICE_DAYS = [7, 5, 3, 1] as const;
  * reuses the exact owner-dictated wording.
  */
 export const EXPIRY_NOTICE_COPY =
-  "Your {planName} is a fixed-term, one-time purchase and does not auto-renew — nothing is ever charged again. It ends in {days} day(s). To keep Pro, you must actively renew before it ends; otherwise your plan reverts to Free, and any applications or analyses beyond free limits will be locked for 30 days and then permanently deleted.";
+  "Your {planName} is a fixed-term, one-time purchase with a specific end date and does not auto-renew — nothing is ever charged again without your action. You may renew for consecutive months by buying another pass any time; you will enter your purchase details again each time you renew. It ends in {days} day(s). If you don't renew, your plan reverts to Free, and any applications or analyses beyond free limits will be locked for 30 days and then permanently deleted.";
 
 export function fillExpiryNoticeCopy(planName: string, days: number): string {
   return EXPIRY_NOTICE_COPY.replace("{planName}", planName).replace(

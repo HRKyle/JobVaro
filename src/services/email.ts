@@ -163,8 +163,8 @@ export async function sendPreExpiryEmail({
   const html = emailHtml(
     `<p>Hi there,</p>
      <p>${copy}</p>
-     <p>Your <strong>${planName}</strong> is a fixed-term, one-time purchase and will <strong>not renew automatically</strong> — nothing will ever be charged again.</p>
-     <p>Your access ends on <strong>${formatDate(expiresAt)}</strong> (${daysLeft} day${daysLeft === 1 ? "" : "s"} remaining). To keep unlimited tracking and Compass, you must <strong>actively renew before that date</strong>.</p>`,
+     <p>Your <strong>${planName}</strong> is a fixed-term, one-time purchase and will <strong>not renew automatically</strong> — nothing will ever be charged again unless you buy another pass. You may renew for consecutive months; each purchase is a separate transaction and you'll enter your payment details again each time.</p>
+     <p>Your access ends on <strong>${formatDate(expiresAt)}</strong> (${daysLeft} day${daysLeft === 1 ? "" : "s"} remaining). To keep unlimited tracking and Compass, buy another pass before that date — renewing month after month keeps your Pro going with no lapse.</p>`,
   );
   await sendEmail({ to, subject, html });
   try {
@@ -198,7 +198,7 @@ export async function sendLapseEmail({
   const html = emailHtml(
     `<p>Hi there,</p>
      <p>Your <strong>${planName}</strong> was a fixed-term, one-time purchase and did not renew automatically — nothing was charged again. It has now ended and you're on the Free plan. Applications or analyses beyond the free limits are <strong>locked</strong> — they're safe for now, but hidden.</p>
-     <p>You can <strong>actively renew</strong> within 30 days (by <strong>${formatDate(graceEndsAt)}</strong>) to restore everything instantly. After that date, locked data is permanently deleted.</p>`,
+     <p>You can renew within 30 days (by <strong>${formatDate(graceEndsAt)}</strong>) to restore everything instantly — you may buy another pass for consecutive months and will enter your payment details again each time (nothing is ever auto-charged). After that date, locked data is permanently deleted.</p>`,
   );
   await sendEmail({ to, subject, html });
   try {
@@ -232,7 +232,7 @@ export async function sendFinalWarningEmail({
   const html = emailHtml(
     `<p>Hi there,</p>
      <p><strong>7 days left.</strong> Your locked data will be <strong>permanently deleted</strong> on <strong>${formatDate(deletionDate)}</strong>.</p>
-     <p>Remember: your plan was a fixed-term purchase and did not auto-renew. It will not be charged again — you must <strong>actively renew now</strong>, within the grace window, to keep your data. Once deleted, it can't be recovered.</p>`,
+     <p>Remember: your plan was a fixed-term purchase and did not auto-renew. Nothing will be charged again unless you buy another pass — you may renew for consecutive months and will re-enter your payment details each time. Renew now, within the grace window, to keep your data. Once deleted, it can't be recovered.</p>`,
   );
   await sendEmail({ to, subject, html });
   try {
