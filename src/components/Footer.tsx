@@ -7,6 +7,7 @@ const FOOTER_LINKS: { href: string; label: string }[] = [
   { href: "/compass", label: "Compass" },
   { href: "/track", label: "Track" },
   { href: "/plans", label: "Plans" },
+  { href: "/privacy", label: "Privacy" },
 ];
 
 export function Footer({ brandName = "JobVaro" }: { brandName?: string }) {
