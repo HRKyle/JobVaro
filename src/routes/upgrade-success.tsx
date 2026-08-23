@@ -181,10 +181,10 @@ function UpgradeSuccessPage() {
           refresh this page. If it's been more than a few minutes, contact us
           at{" "}
           <a
-            href="mailto:support@jobvaro.com"
+            href="mailto:Info@HRKyle.com"
             className="font-semibold text-indigo-600 dark:text-indigo-400"
           >
-            support@jobvaro.com
+            Info@HRKyle.com
           </a>{" "}
           with your payment reference and we'll sort it out right away.
         </p>
@@ -325,7 +325,7 @@ function UpgradeSuccessPage() {
       <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
         {planInfo?.isPro
           ? "Good news — your Pro access is already active, so you're all set."
-          : "This page needs a valid payment reference from the checkout flow. If you just paid and still see this, contact us at support@jobvaro.com."}
+          : "This page needs a valid payment reference from the checkout flow. If you just paid and still see this, contact us at Info@HRKyle.com."}
       </p>
       <div className="mt-6">
         <Link

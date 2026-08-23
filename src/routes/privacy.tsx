@@ -48,10 +48,10 @@ function PrivacyPage() {
             JobVaro is a product of HRKyle Services. If you have questions about this policy or
             your data, contact us at{" "}
             <a
-              href="mailto:support@jobvaro.com"
+              href="mailto:Info@HRKyle.com"
               className="font-medium text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
             >
-              support@jobvaro.com
+              Info@HRKyle.com
             </a>
             .
           </p>
@@ -168,10 +168,10 @@ function PrivacyPage() {
             allows you to delete your own job and application data directly. You may also request
             that your data be deleted by contacting us at{" "}
             <a
-              href="mailto:support@jobvaro.com"
+              href="mailto:Info@HRKyle.com"
               className="font-medium text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
             >
-              support@jobvaro.com
+              Info@HRKyle.com
             </a>
             .
           </p>
@@ -211,10 +211,10 @@ function PrivacyPage() {
             If you have questions or concerns about this Privacy Policy or how your data is
             handled, please contact us at{" "}
             <a
-              href="mailto:support@jobvaro.com"
+              href="mailto:Info@HRKyle.com"
               className="font-medium text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
             >
-              support@jobvaro.com
+              Info@HRKyle.com
             </a>
             .
           </p>
