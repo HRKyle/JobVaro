@@ -1411,6 +1411,37 @@ function TrackPage() {
         />
       )}
 
+      {/* Browser Extension — Save Jobs With One Click */}
+      <section className="mt-6 overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50/80 to-violet-50/50 p-6 dark:border-indigo-900 dark:from-indigo-950/40 dark:to-violet-950/20">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-500/25">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 3v4a1 1 0 001 1h4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z" />
+              </svg>
+            </span>
+            <div>
+              <h3 className="text-base font-bold tracking-tight text-gray-900 dark:text-gray-100">
+                Browser Extension
+              </h3>
+              <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">
+                Save jobs from indeed, LinkedIn, Glassdoor, or any company site in one click.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/extension"
+            className="inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition hover:shadow-lg hover:brightness-110 active:scale-95"
+          >
+            Set up extension
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </section>
+
       {/* Bookmarklet — Save Jobs From Anywhere */}
       <BookmarkletInstructionsCompact />
     </main>
