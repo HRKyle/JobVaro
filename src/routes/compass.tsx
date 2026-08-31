@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type ChangeEvent } from "react";
+import mammoth from "mammoth/mammoth.browser";
 import { getCurrentUser, type AuthUser } from "~/auth/functions";
 import { AuthForms } from "~/components/AuthForms";
-import { analyzeCompass, type CompassReport } from "~/services/compass";
+import { analyzeCompass, COMPASS_MAX_INPUT_CHARS, type CompassReport } from "~/services/compass";
 
 export const Route = createFileRoute("/compass")({
   loader: async () => (await getCurrentUser()).user,
@@ -49,12 +50,16 @@ function CompassWorkspace({ user: _user }: { user: AuthUser }) {
   const [truncated, setTruncated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [uploadError, setUploadError] = useState("");
   const [upgradeRequired, setUpgradeRequired] = useState(false);
 
   async function runAnalysis() {
     if (!resume.trim() || !jd.trim()) return;
     setLoading(true);
     setError("");
+    setNotice("");
+    setUploadError("");
     setUpgradeRequired(false);
     try {
       const result = await analyzeCompass({
@@ -79,12 +84,56 @@ function CompassWorkspace({ user: _user }: { user: AuthUser }) {
     }
   }
 
-  function readFile(e: ChangeEvent<HTMLInputElement>) {
+  /**
+   * Shared upload handler for both the job description and résumé fields.
+   * Accepts .docx (extracted client-side with mammoth) and .txt (plain text).
+   * Extracted text replaces whatever is currently in the textarea, and is
+   * trimmed to the same character cap the backend enforces so the UI never
+   * shows more than Compass will actually analyze.
+   */
+  async function handleFileUpload(
+    e: ChangeEvent<HTMLInputElement>,
+    setText: (v: string) => void,
+  ) {
     const file = e.target.files?.[0];
+    // Reset the input so re-selecting the same file still fires onChange.
+    e.target.value = "";
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setResume(String(reader.result ?? ""));
-    reader.readAsText(file);
+    setUploadError("");
+    const lower = file.name.toLowerCase();
+    try {
+      let text: string;
+      if (lower.endsWith(".docx")) {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        text = result.value ?? "";
+      } else if (lower.endsWith(".txt")) {
+        text = await file.text();
+      } else {
+        setUploadError("Please choose a .docx or .txt file.");
+        return;
+      }
+      text = text.replace(/\u0000/g, "").trim();
+      if (!text) {
+        setUploadError("That file appears to be empty. Please try another one.");
+        return;
+      }
+      if (text.length > COMPASS_MAX_INPUT_CHARS) {
+        text = text.slice(0, COMPASS_MAX_INPUT_CHARS);
+        setNotice(`File was trimmed to ${COMPASS_MAX_INPUT_CHARS.toLocaleString()} characters for analysis.`);
+      }
+      setText(text);
+    } catch {
+      setUploadError("We couldn't read that file. Please try a .docx or .txt file.");
+    }
+  }
+
+  function readFile(e: ChangeEvent<HTMLInputElement>) {
+    void handleFileUpload(e, setResume);
+  }
+
+  function readJdFile(e: ChangeEvent<HTMLInputElement>) {
+    void handleFileUpload(e, setJd);
   }
 
   return (
@@ -135,6 +184,29 @@ function CompassWorkspace({ user: _user }: { user: AuthUser }) {
             className={`${input} resize-y`}
             placeholder="Paste the full job description..."
           />
+          {/* Job description file upload */}
+          <label className="mt-3 flex cursor-pointer items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-600 transition hover:border-indigo-400 hover:bg-indigo-50/50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-400 dark:hover:border-indigo-600 dark:hover:bg-indigo-950/30">
+            <svg
+              className="h-5 w-5 text-indigo-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              />
+            </svg>
+            Upload DOCX or TXT file
+            <input
+              type="file"
+              accept=".docx,.txt"
+              onChange={readJdFile}
+              className="hidden"
+            />
+          </label>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-medium dark:text-gray-200">
@@ -188,20 +260,28 @@ function CompassWorkspace({ user: _user }: { user: AuthUser }) {
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                 />
               </svg>
-              Upload a TXT file
+              Upload DOCX or TXT file
               <input
                 type="file"
-                accept=".txt"
+                accept=".docx,.txt"
                 onChange={readFile}
                 className="hidden"
               />
             </label>
           </div>
 
-          {(jd.length > 8000 || resume.length > 8000) && (
+          {uploadError && (
+            <p className="mt-2 text-xs text-rose-600">{uploadError}</p>
+          )}
+
+          {(jd.length > COMPASS_MAX_INPUT_CHARS || resume.length > COMPASS_MAX_INPUT_CHARS) && (
             <p className="mt-2 text-xs text-amber-600">
-              Long inputs will be trimmed to 8,000 characters for analysis.
+              Long inputs will be trimmed to {COMPASS_MAX_INPUT_CHARS.toLocaleString()} characters for analysis.
             </p>
+          )}
+
+          {notice && (
+            <p className="mt-2 text-xs text-amber-600">{notice}</p>
           )}
 
           {error && (
@@ -401,7 +481,7 @@ function Report({
 
       {truncated && (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
-          Your input was trimmed to 8,000 characters for this analysis.
+          Your input was trimmed to {COMPASS_MAX_INPUT_CHARS.toLocaleString()} characters for this analysis.
         </p>
       )}
 
