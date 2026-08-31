@@ -197,3 +197,15 @@ CREATE TABLE IF NOT EXISTS verification_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_verification_tokens_user    ON verification_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_verification_tokens_expires ON verification_tokens(expires_at);
+-- Email signups (lowercase, case-insensitive dedupe via citext, unique email).
+-- name/source are optional provenance and ip records where the signup came from.
+CREATE EXTENSION IF NOT EXISTS citext;
+CREATE TABLE IF NOT EXISTS waitlist (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email      CITEXT UNIQUE NOT NULL,
+  name       VARCHAR(255),
+  source     VARCHAR(100),
+  ip         VARCHAR(45),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_waitlist_created_at ON waitlist(created_at);

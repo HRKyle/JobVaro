@@ -7,6 +7,7 @@ import { AuthForms } from "~/components/AuthForms";
 import { BookmarkletInstructions } from "~/components/BookmarkletInstructions";
 import type { PaidPlan } from "~/services/plans";
 import { createCheckoutSession, getStripeStatus } from "~/services/stripe";
+import { joinWaitlist } from "~/services/waitlist";
 
 // Read the business name at request time from site.json
 const getBusinessName = createServerFn({ method: "GET" }).handler(async () => {
@@ -343,6 +344,112 @@ function PricingCard({
         </a>
       )}
     </div>
+  );
+}
+
+// ── Waitlist / early access email capture ────────────────────────────────────
+function WaitlistSection() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
+    "idle",
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const value = email.trim();
+      if (!value) {
+        setStatus("error");
+        setError("Please enter your email address.");
+        return;
+      }
+      setStatus("loading");
+      setError(null);
+      const res = await joinWaitlist({
+        data: { email: value, source: "homepage" },
+      });
+      if (res.success) {
+        setStatus("success");
+        setEmail("");
+      } else {
+        setStatus("error");
+        setError(res.error);
+      }
+    },
+    [email],
+  );
+
+  return (
+    <section className="relative overflow-hidden px-6 py-24 sm:py-32">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-100/70 via-white to-white dark:from-indigo-950/40 dark:via-gray-950 dark:to-gray-950" />
+      <div className="mx-auto max-w-2xl text-center">
+        <FadeInSection>
+          <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/80 px-4 py-1.5 text-sm font-medium text-indigo-700 shadow-sm backdrop-blur dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
+            ✨ Early access
+          </span>
+          <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-gray-100">
+            Be first in line
+          </h2>
+          <p className="mx-auto mb-8 max-w-xl text-lg leading-relaxed text-gray-600 dark:text-gray-400">
+            Sign up for early access and be the first to know about new features,
+            product updates, and exclusive launches. No spam — just the good
+            stuff.
+          </p>
+        </FadeInSection>
+
+        <FadeInSection threshold={0.1}>
+          {status === "success" ? (
+            <div className="mx-auto flex max-w-md items-center justify-center gap-3 rounded-2xl border border-green-200 bg-green-50 px-6 py-5 text-left dark:border-green-900 dark:bg-green-950/50">
+              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+              <div>
+                <p className="font-semibold text-green-800 dark:text-green-200">
+                  You&apos;re on the list — we&apos;ll be in touch.
+                </p>
+                <p className="text-sm text-green-700/80 dark:text-green-300/80">
+                  Thanks for joining the early access waitlist!
+                </p>
+              </div>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleSubmit}
+              className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row"
+            >
+              <label htmlFor="waitlist-email" className="sr-only">
+                Email address
+              </label>
+              <input
+                id="waitlist-email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={status === "loading"}
+                className="w-full flex-1 rounded-xl border-2 border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder-gray-400 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
+              />
+              <button
+                type="submit"
+                disabled={status === "loading"}
+                className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 px-6 py-3 text-base font-semibold text-white shadow-md shadow-indigo-500/30 transition-all hover:shadow-lg hover:shadow-indigo-500/40 hover:brightness-110 active:scale-95 disabled:cursor-wait disabled:opacity-70"
+              >
+                {status === "loading" ? "Joining…" : "Join the waitlist"}
+              </button>
+            </form>
+          )}
+          {status === "error" && error && (
+            <p className="mx-auto mt-4 max-w-md text-center text-sm font-medium text-red-600 dark:text-red-400">
+              {error}
+            </p>
+          )}
+        </FadeInSection>
+      </div>
+    </section>
   );
 }
 
@@ -789,6 +896,11 @@ function Home() {
           </div>
         </div>
       </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          WAITLIST — EARLY ACCESS
+          ══════════════════════════════════════════════════════════════════════ */}
+      <WaitlistSection />
 
       {/* ══════════════════════════════════════════════════════════════════════
           BOOKMARKLET — ONE-CLICK SAVE
