@@ -386,15 +386,16 @@ function WaitlistSection() {
       <div className="mx-auto max-w-2xl text-center">
         <FadeInSection>
           <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/80 px-4 py-1.5 text-sm font-medium text-indigo-700 shadow-sm backdrop-blur dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
-            ✨ Early access
+            🚀 Early-bird access
           </span>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-gray-100">
-            Be first in line
+            Stop juggling tabs and spreadsheets. Land more interviews.
           </h2>
           <p className="mx-auto mb-8 max-w-xl text-lg leading-relaxed text-gray-600 dark:text-gray-400">
-            Sign up for early access and be the first to know about new features,
-            product updates, and exclusive launches. No spam — just the good
-            stuff.
+            JobVaro is your job-search command center — track every application
+            in one place, auto-fill any job URL, and check your real odds with
+            AI résumé matching. Join the list to be first in and lock in
+            early-bird pricing on Pro.
           </p>
         </FadeInSection>
 
@@ -408,10 +409,10 @@ function WaitlistSection() {
               </span>
               <div>
                 <p className="font-semibold text-green-800 dark:text-green-200">
-                  You&apos;re on the list — we&apos;ll be in touch.
+                  You&apos;re on the list — check your inbox for a welcome note.
                 </p>
                 <p className="text-sm text-green-700/80 dark:text-green-300/80">
-                  Thanks for joining the early access waitlist!
+                  We&apos;ll email you the moment early-bird access opens.
                 </p>
               </div>
             </div>
@@ -438,7 +439,7 @@ function WaitlistSection() {
                 disabled={status === "loading"}
                 className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 px-6 py-3 text-base font-semibold text-white shadow-md shadow-indigo-500/30 transition-all hover:shadow-lg hover:shadow-indigo-500/40 hover:brightness-110 active:scale-95 disabled:cursor-wait disabled:opacity-70"
               >
-                {status === "loading" ? "Joining…" : "Join the waitlist"}
+                {status === "loading" ? "Joining…" : "Get early-bird access"}
               </button>
             </form>
           )}
@@ -447,6 +448,9 @@ function WaitlistSection() {
               {error}
             </p>
           )}
+          <p className="mx-auto mt-4 max-w-md text-center text-xs text-gray-400 dark:text-gray-500">
+            No spam. Unsubscribe anytime.
+          </p>
         </FadeInSection>
       </div>
     </section>
