@@ -63,7 +63,15 @@ export const analyzeCompass = createServerFn({ method: "POST" }).handler(async (
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
       body: JSON.stringify({ model: "gpt-4o-mini", temperature: 0.2, response_format: { type: "json_object" }, messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: `JOB TITLE: ${input.jobTitle || "(infer from posting)"}\nCOMPANY: ${input.company || "(not provided)"}\n\nJOB DESCRIPTION:\n${job}\n\nRESUME:\n${resume}` }] }),
     });
-    if (!response.ok) throw new Error(`OpenAI request failed (${response.status})`);
+    if (!response.ok) {
+      // Distinguish a transient/provider-side failure (e.g. quota/rate-limit)
+      // from something the user can fix, so we don't blame their inputs.
+      throw new Error(
+        response.status === 429 || response.status === 401 || response.status === 403
+          ? "Compass AI service unavailable"
+          : `OpenAI request failed (${response.status})`,
+      );
+    }
     const payload = await response.json() as { choices?: { message?: { content?: string } }[] };
     const report = JSON.parse(payload.choices?.[0]?.message?.content ?? "") as CompassReport;
     if (typeof report.matchScore !== "number" || !report.categoryScores) throw new Error("Invalid analysis returned");
@@ -71,6 +79,10 @@ export const analyzeCompass = createServerFn({ method: "POST" }).handler(async (
     return { success: true, report, truncated };
   } catch (error) {
     console.error("Compass analysis error:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg === "Compass AI service unavailable") {
+      return { success: false, error: "Compass's AI service is temporarily unavailable. Please try again in a few minutes." };
+    }
     return { success: false, error: "We couldn't complete the analysis. Please check your inputs and try again." };
   }
 });
