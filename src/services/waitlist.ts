@@ -1,9 +1,9 @@
 /**
- * Waitlist / early-access email capture.
+ * Waitlist / product-updates email capture.
  *
  * A lightweight, opt-in signup that records an email (and optionally a name +
- * provenance) so the team can reach out about early access and product updates.
- * No account is created — this is purely an email list.
+ * provenance) so the team can send product updates. No account is created —
+ * this is purely an email list.
  *
  * Handled here: email format validation, case-insensitive dedupe, and source/IP
  * capture. Deliberately does NOT leak whether an address already exists: if the

@@ -386,7 +386,7 @@ function WaitlistSection() {
       <div className="mx-auto max-w-2xl text-center">
         <FadeInSection>
           <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/80 px-4 py-1.5 text-sm font-medium text-indigo-700 shadow-sm backdrop-blur dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
-            🚀 Early-bird access
+            🚀 Product updates
           </span>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-gray-100">
             Stop juggling tabs and spreadsheets. Land more interviews.
@@ -394,8 +394,8 @@ function WaitlistSection() {
           <p className="mx-auto mb-8 max-w-xl text-lg leading-relaxed text-gray-600 dark:text-gray-400">
             JobVaro is your job-search command center — track every application
             in one place, auto-fill any job URL, and check your real odds with
-            AI résumé matching. Join the list to be first in and lock in
-            early-bird pricing on Pro.
+            AI résumé matching. Join the list for launch news, new features,
+            and job-seeker tips.
           </p>
         </FadeInSection>
 
@@ -409,10 +409,10 @@ function WaitlistSection() {
               </span>
               <div>
                 <p className="font-semibold text-green-800 dark:text-green-200">
-                  You&apos;re on the list — check your inbox for a welcome note.
+                  You&apos;re in — check your inbox for a welcome note.
                 </p>
                 <p className="text-sm text-green-700/80 dark:text-green-300/80">
-                  We&apos;ll email you the moment early-bird access opens.
+                  We&apos;ll email you product updates and new features.
                 </p>
               </div>
             </div>
@@ -439,7 +439,7 @@ function WaitlistSection() {
                 disabled={status === "loading"}
                 className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 px-6 py-3 text-base font-semibold text-white shadow-md shadow-indigo-500/30 transition-all hover:shadow-lg hover:shadow-indigo-500/40 hover:brightness-110 active:scale-95 disabled:cursor-wait disabled:opacity-70"
               >
-                {status === "loading" ? "Joining…" : "Get early-bird access"}
+                {status === "loading" ? "Joining…" : "Get product updates"}
               </button>
             </form>
           )}
@@ -530,7 +530,7 @@ function Home() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
             </span>
-            Now in public beta
+            Now live — free to start
           </div>
         </FadeInSection>
 
@@ -902,7 +902,7 @@ function Home() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          WAITLIST — EARLY ACCESS
+          NEWSLETTER — PRODUCT UPDATES
           ══════════════════════════════════════════════════════════════════════ */}
       <WaitlistSection />
 
