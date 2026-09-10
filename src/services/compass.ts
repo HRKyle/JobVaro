@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
-import { PAID_COMPASS_MONTHLY_LIMIT, STRIPE_PRICE_IDS, getGraceStateForUser } from "~/services/plans";
+import { PAID_COMPASS_MONTHLY_LIMIT, getGraceStateForUser } from "~/services/plans";
 
 export interface CompassReport {
   matchScore: number; candidateFit: number; resumeEffectiveness: number;
@@ -18,16 +18,29 @@ Return ONLY valid JSON (no markdown) with exactly these sections: matchScore (0-
 
 Rules: truly required missing qualifications (especially legally required licenses/certifications) must heavily reduce Qualifications Alignment. Distinguish Required from Preferred; missing preferred items should not heavily penalize. Transferable skills earn partial credit (for example Tableau + Python for a Power BI request). Do not merely keyword match; evaluate actual capability. Scores must add up: matchScore = category total, candidateFit = qualifications + experience + skills, resumeEffectiveness = resumeEvidence + atsReadiness.`;
 
+/**
+ * Maximum allowed length (in characters) for each of the two free-text inputs
+ * (resume and job description). Chosen to comfortably fit full résumés and
+ * full job postings while staying well within gpt-4o-mini's context window.
+ * Exported so the UI can mirror the same limit and notice text.
+ */
+export const COMPASS_MAX_INPUT_CHARS = 50000;
+
 export const analyzeCompass = createServerFn({ method: "POST" }).handler(async ({ data }): Promise<{ success: true; report: CompassReport; truncated: boolean } | { success: false; error: string; upgradeRequired?: boolean }> => {
-  const input = data as { resumeText?: string; jobDescription?: string; jobTitle?: string; company?: string };
-  const resumeText = (input.resumeText ?? "").trim();
-  const jobDescription = (input.jobDescription ?? "").trim();
-  if (!resumeText || !jobDescription) return { success: false, error: "Please provide both a resume and job description." };
-  const truncated = resumeText.length > 8000 || jobDescription.length > 8000;
-  const resume = resumeText.slice(0, 8000);
-  const job = jobDescription.slice(0, 8000);
-  if (!process.env.OPENAI_API_KEY) return { success: false, error: "Compass is not configured yet. Please try again later." };
   try {
+    // Normalize inputs defensively. Guard against a malformed/empty payload so
+    // nothing here can ever throw OUTSIDE this try/catch — an unhandled throw
+    // would reject the server fn and surface the frontend's generic
+    // "Something went wrong" message with no detail.
+    const input = (data ?? {}) as { resumeText?: string; jobDescription?: string; jobTitle?: string; company?: string };
+    const resumeText = String(input.resumeText ?? "").trim();
+    const jobDescription = String(input.jobDescription ?? "").trim();
+    if (!resumeText || !jobDescription) return { success: false, error: "Please provide both a resume and job description." };
+    const truncated = resumeText.length > COMPASS_MAX_INPUT_CHARS || jobDescription.length > COMPASS_MAX_INPUT_CHARS;
+    const resume = resumeText.slice(0, COMPASS_MAX_INPUT_CHARS);
+    const job = jobDescription.slice(0, COMPASS_MAX_INPUT_CHARS);
+    if (!process.env.OPENAI_API_KEY) return { success: false, error: "Compass is not configured yet. Please try again later." };
+
     // Resolve the session up front so we can enforce the free-plan usage cap.
     const { getSession } = await import("~/auth/session");
     const session = await getSession();
@@ -43,7 +56,7 @@ export const analyzeCompass = createServerFn({ method: "POST" }).handler(async (
     const count = (countRows[0] as { count: number }).count ?? 0;
     const limit = isPaid ? PAID_COMPASS_MONTHLY_LIMIT : 1;
     if (count >= limit) {
-      return { success: false, error: isPaid ? "You've used all 25 Compass analyses this month. Purchase an additional analysis for $0.99 to continue." : "Free plan includes 1 Compass analysis. Upgrade to Pro or purchase an additional analysis for $0.99 to continue.", upgradeRequired: true, addOnPriceId: STRIPE_PRICE_IDS.compassAddOn } as never;
+      return { success: false, error: isPaid ? "You've used all 25 Compass analyses this month. Purchase an additional analysis for $0.99 to continue." : "Free plan includes 1 Compass analysis. Upgrade to Pro or purchase an additional analysis for $0.99 to continue.", upgradeRequired: true };
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
