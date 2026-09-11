@@ -6,6 +6,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
+import { siteUrl } from "~/lib/site-url";
 import { hashPassword, verifyPassword } from "./password";
 // Session functions are imported dynamically inside handlers
 // to prevent the bundler from tracing into auth/session.ts → @tanstack/react-start/server
@@ -130,7 +131,7 @@ export const signUp = createServerFn({ method: "POST" }).handler(
         INSERT INTO verification_tokens (user_id, token_hash, email, expires_at)
         VALUES (${String(user.id)}, ${hash}, ${email}, ${expiresAt.toISOString()})
       `;
-      const verifyUrl = `https://www.jobvaro.com/verify?token=${encodeURIComponent(raw)}`;
+      const verifyUrl = `${siteUrl()}/verify?token=${encodeURIComponent(raw)}`;
       const { sendEmail } = await import("~/services/email");
       await sendEmail({
         to: email,
@@ -418,7 +419,7 @@ export const resendVerification = createServerFn({ method: "POST" }).handler(
             INSERT INTO verification_tokens (user_id, token_hash, email, expires_at)
             VALUES (${String(row.id)}, ${hash}, ${normalized}, ${expiresAt.toISOString()})
           `;
-          const verifyUrl = `https://www.jobvaro.com/verify?token=${encodeURIComponent(raw)}`;
+          const verifyUrl = `${siteUrl()}/verify?token=${encodeURIComponent(raw)}`;
           const { sendEmail } = await import("~/services/email");
           await sendEmail({
             to: normalized,
@@ -472,7 +473,7 @@ export const requestPasswordReset = createServerFn({ method: "POST" }).handler(
             INSERT INTO password_reset_tokens (user_id, token_hash, email, expires_at)
             VALUES (${String(user.id)}, ${hash}, ${normalized}, ${expiresAt.toISOString()})
           `;
-          const resetUrl = `https://www.jobvaro.com/reset-password?token=${encodeURIComponent(raw)}&email=${encodeURIComponent(normalized)}`;
+          const resetUrl = `${siteUrl()}/reset-password?token=${encodeURIComponent(raw)}&email=${encodeURIComponent(normalized)}`;
           const { sendEmail } = await import("~/services/email");
           await sendEmail({
             to: normalized,

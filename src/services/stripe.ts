@@ -13,14 +13,15 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
+import { siteUrl } from "~/lib/site-url";
 import { isPaidPlan, type PaidPlan } from "~/services/plans";
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
 const STRIPE_API_BASE = "https://api.stripe.com";
-const CHECKOUT_SUCCESS_URL =
-  "https://www.jobvaro.com/upgrade-success?session_id={CHECKOUT_SESSION_ID}";
-const CHECKOUT_CANCEL_URL = "https://www.jobvaro.com/plans";
+const checkoutSuccessUrl = () =>
+  `${siteUrl()}/upgrade-success?session_id={CHECKOUT_SESSION_ID}`;
+const checkoutCancelUrl = () => `${siteUrl()}/plans`;
 
 /** One-time amounts (cents) + product names for each plan. No pre-created price. */
 export const PLAN_PRICES: Record<PaidPlan, { amount: number; name: string }> = {
@@ -159,8 +160,8 @@ export const createCheckoutSession = createServerFn({ method: "POST" }).handler(
     const { amount, name } = PLAN_PRICES[plan];
     const body = formEncode({
       mode: "payment",
-      "success_url": CHECKOUT_SUCCESS_URL,
-      "cancel_url": CHECKOUT_CANCEL_URL,
+      "success_url": checkoutSuccessUrl(),
+      "cancel_url": checkoutCancelUrl(),
       "customer_email": email,
       "line_items[0][quantity]": 1,
       "line_items[0][price_data][currency]": "usd",
