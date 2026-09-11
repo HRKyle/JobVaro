@@ -395,7 +395,8 @@ function WaitlistSection() {
             JobVaro isn&apos;t live yet — it&apos;s launching soon. Join the
             launch list and we&apos;ll email you the moment we&apos;re ready.
             Every signup is automatically entered to win a full Pro
-            subscription, free for as long as you&apos;re job searching.
+            subscription — free for as long as you&apos;re job searching,
+            up to one year.
           </p>
         </FadeInSection>
 
@@ -450,7 +451,7 @@ function WaitlistSection() {
             </p>
           )}
           <p className="mx-auto mt-4 max-w-md text-center text-xs text-gray-400 dark:text-gray-500">
-            No spam, ever. Unsubscribe anytime. No purchase necessary.
+            No spam, ever. Unsubscribe anytime. No purchase necessary. One winner, drawn shortly after launch.
           </p>
         </FadeInSection>
       </div>
