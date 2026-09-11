@@ -381,21 +381,21 @@ function WaitlistSection() {
   );
 
   return (
-    <section className="relative overflow-hidden px-6 py-24 sm:py-32">
+    <section id="get-notified" className="relative overflow-hidden px-6 py-24 sm:py-32">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-100/70 via-white to-white dark:from-indigo-950/40 dark:via-gray-950 dark:to-gray-950" />
       <div className="mx-auto max-w-2xl text-center">
         <FadeInSection>
           <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/80 px-4 py-1.5 text-sm font-medium text-indigo-700 shadow-sm backdrop-blur dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
-            🚀 Product updates
+            🔔 Launch list
           </span>
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl dark:text-gray-100">
-            Stop juggling tabs and spreadsheets. Land more interviews.
+            Get notified when JobVaro goes live
           </h2>
           <p className="mx-auto mb-8 max-w-xl text-lg leading-relaxed text-gray-600 dark:text-gray-400">
-            JobVaro is your job-search command center — track every application
-            in one place, auto-fill any job URL, and check your real odds with
-            AI résumé matching. Join the list for launch news, new features,
-            and job-seeker tips.
+            JobVaro isn&apos;t live yet — it&apos;s launching soon. Join the
+            launch list and we&apos;ll email you the moment we&apos;re ready.
+            Every signup is automatically entered to win a full Pro
+            subscription, free for as long as you&apos;re job searching.
           </p>
         </FadeInSection>
 
@@ -409,10 +409,11 @@ function WaitlistSection() {
               </span>
               <div>
                 <p className="font-semibold text-green-800 dark:text-green-200">
-                  You&apos;re in — check your inbox for a welcome note.
+                  You&apos;re on the launch list!
                 </p>
                 <p className="text-sm text-green-700/80 dark:text-green-300/80">
-                  We&apos;ll email you product updates and new features.
+                  We&apos;ll email you the moment JobVaro launches — and
+                  you&apos;re entered to win a free Pro subscription.
                 </p>
               </div>
             </div>
@@ -439,7 +440,7 @@ function WaitlistSection() {
                 disabled={status === "loading"}
                 className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 px-6 py-3 text-base font-semibold text-white shadow-md shadow-indigo-500/30 transition-all hover:shadow-lg hover:shadow-indigo-500/40 hover:brightness-110 active:scale-95 disabled:cursor-wait disabled:opacity-70"
               >
-                {status === "loading" ? "Joining…" : "Get product updates"}
+                {status === "loading" ? "Joining…" : "Notify me when we launch"}
               </button>
             </form>
           )}
@@ -449,7 +450,7 @@ function WaitlistSection() {
             </p>
           )}
           <p className="mx-auto mt-4 max-w-md text-center text-xs text-gray-400 dark:text-gray-500">
-            No spam. Unsubscribe anytime.
+            No spam, ever. Unsubscribe anytime. No purchase necessary.
           </p>
         </FadeInSection>
       </div>
@@ -527,10 +528,10 @@ function Home() {
         <FadeInSection>
           <div className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white/80 px-4 py-1.5 text-sm font-medium text-indigo-700 shadow-sm backdrop-blur dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
             </span>
-            Now live — free to start
+            Launching soon — not live yet
           </div>
         </FadeInSection>
 
@@ -557,10 +558,10 @@ function Home() {
         <FadeInSection>
           <div className="flex flex-col items-center gap-4 sm:flex-row">
             <a
-              href="/track"
+              href="#get-notified"
               className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:shadow-xl hover:shadow-indigo-500/40 hover:brightness-110 active:scale-95"
             >
-              Get Started Free
+              Get notified when we launch
             </a>
             <a
               href="#how-it-works"
@@ -902,7 +903,7 @@ function Home() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          NEWSLETTER — PRODUCT UPDATES
+          LAUNCH LIST — NOTIFY ME + PRO-SUBSCRIPTION CONTEST
           ══════════════════════════════════════════════════════════════════════ */}
       <WaitlistSection />
 

@@ -1,8 +1,8 @@
 /**
- * Waitlist / product-updates email capture.
+ * Launch-list signup (notify me when JobVaro goes live; contest entry).
  *
  * A lightweight, opt-in signup that records an email (and optionally a name +
- * provenance) so the team can send product updates. No account is created —
+ * provenance) so the team can notify people at launch. No account is created —
  * this is purely an email list.
  *
  * Handled here: email format validation, case-insensitive dedupe, and source/IP
